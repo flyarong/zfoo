@@ -13,14 +13,16 @@
 
 package com.zfoo.orm.model.entity;
 
+import com.zfoo.protocol.util.StringUtils;
+
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public interface IEntity<PK extends Comparable<PK>> {
 
     /**
-     * 一个文档的主键
+     * 一个文档的主键 primary key
      */
     PK id();
 
@@ -44,6 +46,24 @@ public interface IEntity<PK extends Comparable<PK>> {
     }
 
     default void svs(long vs) {
+    }
+
+    /**
+     * 判空：由于查询不存在时缓存中也会有一份，因此判断为空需要根据实际类型才能决定
+     *
+     * @return EntityCaches中取出的值在数据库中是否存在
+     */
+    default boolean empty() {
+        PK idValue = id();
+        if (idValue == null) {
+            return true;
+        }
+        // id在启动的时候做过校验，只能是int long float double String几种类型
+        if (idValue instanceof Number) {
+            return ((Number) idValue).doubleValue() == 0D;
+        } else {
+            return StringUtils.isEmpty((CharSequence) idValue);
+        }
     }
 
 }

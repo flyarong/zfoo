@@ -18,12 +18,13 @@ import com.zfoo.protocol.ProtocolManager;
 import com.zfoo.protocol.collection.ArrayUtils;
 import com.zfoo.protocol.exception.RunException;
 import com.zfoo.protocol.generate.GenerateOperation;
-import com.zfoo.protocol.generate.GenerateProtocolDocument;
+import com.zfoo.protocol.generate.GenerateProtocolNote;
 import com.zfoo.protocol.model.Pair;
 import com.zfoo.protocol.registration.IProtocolRegistration;
 import com.zfoo.protocol.registration.ProtocolAnalysis;
 import com.zfoo.protocol.registration.ProtocolRegistration;
 import com.zfoo.protocol.registration.field.*;
+import com.zfoo.protocol.serializer.CodeLanguage;
 import com.zfoo.protocol.serializer.reflect.*;
 import com.zfoo.protocol.util.ClassUtils;
 import com.zfoo.protocol.util.DomUtils;
@@ -35,13 +36,14 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import static com.zfoo.protocol.util.FileUtils.LS;
 import static com.zfoo.protocol.util.StringUtils.TAB;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public abstract class GenerateProtobufUtils {
@@ -158,7 +160,7 @@ public abstract class GenerateProtobufUtils {
         builder.append("}").append(LS);
 
         var protocolOutputPath = StringUtils.format("{}/{}.proto", protocolOutputRootPath, protocolManagerName);
-        FileUtils.writeStringToFile(new File(protocolOutputPath), builder.toString());
+        FileUtils.writeStringToFile(new File(protocolOutputPath), builder.toString(), true);
     }
 
     public static void createProtocols() throws ClassNotFoundException {
@@ -192,78 +194,90 @@ public abstract class GenerateProtobufUtils {
                 var protocolId = ProtocolAnalysis.getProtocolIdByClass(protocolClass);
                 var protocolRegistration = ProtocolManager.getProtocol(protocolId);
 
-                var protocolDocument = GenerateProtocolDocument.getProtocolDocument(protocolId);
-                var docTitle = protocolDocument.getKey();
+                builder.append("// id = ").append(protocolId).append(LS);
 
-                if (StringUtils.isNotBlank(docTitle)) {
-                    Arrays.stream(docTitle.split(LS)).forEach(it -> builder.append(it).append(LS));
+                var classNote = GenerateProtocolNote.classNote(protocolId, CodeLanguage.Protobuf);
+                if (StringUtils.isNotBlank(classNote)) {
+                    builder.append(classNote).append(LS);
                 }
 
                 builder.append(StringUtils.format("message {} {", protocolClass.getSimpleName())).append(LS);
-                builder.append(protocolClass((ProtocolRegistration) protocolRegistration));
+                builder.append(protobufFiled((ProtocolRegistration) protocolRegistration));
                 builder.append("}").append(LS).append(LS);
             }
 
             var protocolOutputPath = StringUtils.format("{}/{}.proto", protocolOutputRootPath, protos.getName());
-            FileUtils.writeStringToFile(new File(protocolOutputPath), builder.toString());
+            FileUtils.writeStringToFile(new File(protocolOutputPath), builder.toString(), true);
         }
     }
 
-    private static String protocolClass(ProtocolRegistration registration) {
-        var builder = new StringBuilder();
-
+    /**
+     * 优化一下生成协议顺序
+     *
+     * @param registration
+     * @return
+     */
+    private static String protobufFiled(ProtocolRegistration registration) {
         var protocolId = registration.getId();
         var fields = registration.getFields();
         var fieldRegistrations = registration.getFieldRegistrations();
 
-        var protocolDocument = GenerateProtocolDocument.getProtocolDocument(protocolId);
-        var docFieldMap = protocolDocument.getValue();
-
+        // 先检查注解id顺序是否有重复
+        var orderMap = new TreeMap<Integer, String>();
         for (int i = 0, length = fields.length; i < length; i++) {
             var field = fields[i];
             var fieldRegistration = fieldRegistrations[i];
 
             var protobuf = field.getDeclaredAnnotation(Protobuf.class);
             if (protobuf == null) {
-                throw new RunException("protobu协议类必须加上注解[{}]，并且标识order的顺序", Protobuf.class.getSimpleName());
+                throw new RunException("protobuf协议类必须加上注解[{}]，并且标识order的顺序", Protobuf.class.getSimpleName());
             }
             var order = protobuf.order();
-
-            var propertyName = field.getName();
+            if (orderMap.containsKey(order)) {
+                throw new RunException("protobuf协议类注解[{}]，order的顺序重复[{}]", Protobuf.class.getSimpleName(), order);
+            }
+            var builder = new StringBuilder();
+            var fieldName = field.getName();
             // 生成注释
-            var doc = docFieldMap.get(propertyName);
-            if (StringUtils.isNotBlank(doc)) {
-                Arrays.stream(doc.split(LS)).forEach(it -> builder.append(TAB).append(it).append(LS));
+            var fieldNote = GenerateProtocolNote.fieldNote(protocolId, fieldName, CodeLanguage.Protobuf);
+            if (StringUtils.isNotBlank(fieldNote)) {
+                builder.append(TAB).append(fieldNote).append(LS);
             }
 
             var singleFieldStr = toFieldTypeName(fieldRegistration);
             if (StringUtils.isNotBlank(singleFieldStr)) {
-                builder.append(TAB).append(StringUtils.format("{} {} = {};", singleFieldStr, propertyName, order)).append(LS);
+                builder.append(TAB).append(StringUtils.format("{} {} = {};", singleFieldStr, fieldName, order)).append(LS);
+                orderMap.put(order, builder.toString());
                 continue;
             }
 
             if (fieldRegistration instanceof ArrayField) {
                 var arrayField = (ArrayField) fieldRegistration;
                 var arrayFieldStr = toFieldTypeName(arrayField.getArrayElementRegistration());
-                builder.append(TAB).append(StringUtils.format("repeated {} {} = {};", arrayFieldStr, propertyName, order)).append(LS);
+                builder.append(TAB).append(StringUtils.format("repeated {} {} = {};", arrayFieldStr, fieldName, order)).append(LS);
             } else if (fieldRegistration instanceof ListField) {
                 var listField = (ListField) fieldRegistration;
                 var listFieldStr = toFieldTypeName(listField.getListElementRegistration());
-                builder.append(TAB).append(StringUtils.format("repeated {} {} = {};", listFieldStr, propertyName, order)).append(LS);
+                builder.append(TAB).append(StringUtils.format("repeated {} {} = {};", listFieldStr, fieldName, order)).append(LS);
             } else if (fieldRegistration instanceof SetField) {
                 var setField = (SetField) fieldRegistration;
                 var setFieldStr = toFieldTypeName(setField.getSetElementRegistration());
-                builder.append(TAB).append(StringUtils.format("repeated {} {} = {};", setFieldStr, propertyName, order)).append(LS);
+                builder.append(TAB).append(StringUtils.format("repeated {} {} = {};", setFieldStr, fieldName, order)).append(LS);
             } else if (fieldRegistration instanceof MapField) {
                 var mapField = (MapField) fieldRegistration;
                 var keyFieldStr = toFieldTypeName(mapField.getMapKeyRegistration());
                 var valueFieldStr = toFieldTypeName(mapField.getMapValueRegistration());
-                builder.append(TAB).append(StringUtils.format("map<{}, {}> {} = {};", keyFieldStr, valueFieldStr, propertyName, order)).append(LS);
+                builder.append(TAB).append(StringUtils.format("map<{}, {}> {} = {};", keyFieldStr, valueFieldStr, fieldName, order)).append(LS);
             } else {
                 throw new RunException("无法识别的protobuf类型[{}]", field.getName());
             }
+            orderMap.put(order, builder.toString());
         }
-
+        
+        var builder = new StringBuilder();
+        for (var entry : orderMap.entrySet()) {
+            builder.append(entry.getValue());
+        }
         return builder.toString();
     }
 

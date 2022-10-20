@@ -16,7 +16,13 @@ package com.zfoo.event.manager;
 import com.zfoo.event.model.event.IEvent;
 import com.zfoo.event.model.vo.IEventReceiver;
 import com.zfoo.protocol.collection.CollectionUtils;
+import com.zfoo.protocol.collection.concurrent.CopyOnWriteHashMapLongObject;
+import com.zfoo.protocol.util.AssertionUtils;
+import com.zfoo.protocol.util.StringUtils;
+import com.zfoo.util.SafeRunnable;
+import com.zfoo.util.ThreadUtils;
 import com.zfoo.util.math.RandomUtils;
+import io.netty.util.concurrent.FastThreadLocalThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,30 +30,57 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public abstract class EventBus {
 
     private static final Logger logger = LoggerFactory.getLogger(EventBus.class);
 
-    // 线程池的大小
+    /**
+     * 线程池的大小. event的线程池比较大
+     */
     public static final int EXECUTORS_SIZE = Runtime.getRuntime().availableProcessors() * 2;
 
     private static final ExecutorService[] executors = new ExecutorService[EXECUTORS_SIZE];
 
-    private static final Map<Class<? extends IEvent>, List<IEventReceiver>> receiverMap = new HashMap<>();
+    private static final CopyOnWriteHashMapLongObject<ExecutorService> threadMap = new CopyOnWriteHashMapLongObject<>(EXECUTORS_SIZE);
 
+    private static final Map<Class<? extends IEvent>, List<IEventReceiver>> receiverMap = new HashMap<>();
 
     static {
         for (int i = 0; i < executors.length; i++) {
-            var namedThreadFactory = new EventThreadFactory(i + 1);
-            executors[i] = Executors.newSingleThreadExecutor(namedThreadFactory);
+            var namedThreadFactory = new EventThreadFactory(i);
+            var executor = Executors.newSingleThreadExecutor(namedThreadFactory);
+            executors[i] = executor;
+        }
+    }
+
+    public static class EventThreadFactory implements ThreadFactory {
+        private final int poolNumber;
+        private final AtomicInteger threadNumber = new AtomicInteger(1);
+        private final ThreadGroup group;
+
+        public EventThreadFactory(int poolNumber) {
+            this.group = ThreadUtils.currentThreadGroup();
+            this.poolNumber = poolNumber;
+        }
+
+        @Override
+        public Thread newThread(Runnable runnable) {
+            var threadName = StringUtils.format("event-p{}-t{}", poolNumber + 1, threadNumber.getAndIncrement());
+            var thread = new FastThreadLocalThread(group, runnable, threadName, 0);
+            thread.setDaemon(false);
+            thread.setPriority(Thread.NORM_PRIORITY);
+            thread.setUncaughtExceptionHandler((t, e) -> logger.error(t.toString(), e));
+            var executor = executors[poolNumber];
+            AssertionUtils.notNull(executor);
+            threadMap.put(thread.getId(), executor);
+            return thread;
         }
     }
 
@@ -76,25 +109,29 @@ public abstract class EventBus {
             return;
         }
 
-        executors[Math.abs(event.threadId() % EXECUTORS_SIZE)].execute(new Runnable() {
-            @Override
-            public void run() {
-                doSubmit(event, list);
-            }
-        });
+        executors[Math.abs(event.threadId() % EXECUTORS_SIZE)].execute(() -> doSubmit(event, list));
+    }
+
+    public static void asyncExecute(Runnable runnable) {
+        execute(RandomUtils.randomInt(), runnable);
     }
 
     /**
-     * 随机获取一个线程池
+     * 用指定线程执行
+     *
+     * @param hashcode
+     * @return
      */
-    public static Executor asyncExecute() {
-        return executors[RandomUtils.randomInt(EXECUTORS_SIZE)];
+    public static void execute(int hashcode, Runnable runnable) {
+        executors[Math.abs(hashcode % EXECUTORS_SIZE)].execute(SafeRunnable.valueOf(runnable));
     }
 
-    public static Executor execute(int hashcode) {
-        return executors[Math.abs(hashcode % EXECUTORS_SIZE)];
-    }
-
+    /**
+     * 执行方法调用
+     *
+     * @param event        事件
+     * @param receiverList 所有的观察者
+     */
     private static void doSubmit(IEvent event, List<IEventReceiver> receiverList) {
         for (var receiver : receiverList) {
             try {
@@ -107,10 +144,16 @@ public abstract class EventBus {
         }
     }
 
+    /**
+     * 注册事件及其对应观察者
+     */
     public static void registerEventReceiver(Class<? extends IEvent> eventType, IEventReceiver receiver) {
         receiverMap.computeIfAbsent(eventType, it -> new LinkedList<>()).add(receiver);
     }
 
+    public static Executor threadExecutor(long currentThreadId) {
+        return threadMap.getPrimitive(currentThreadId);
+    }
 }
 
 

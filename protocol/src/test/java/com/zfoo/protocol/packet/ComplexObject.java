@@ -14,28 +14,22 @@
 package com.zfoo.protocol.packet;
 
 import com.zfoo.protocol.IPacket;
+import com.zfoo.protocol.registration.anno.Compatible;
+import com.zfoo.protocol.registration.anno.Note;
+import com.zfoo.protocol.registration.anno.Protocol;
 
 import java.util.*;
 
-/**
- * 复杂的对象
- * 包括了各种复杂的结构，数组，List，Set，Map
- *
- * @author jaysunxiao
- * @version 3.0
- */
+@Protocol(note = "复杂的对象，包括了各种复杂的结构，数组，List，Set，Map")
 public class ComplexObject implements IPacket {
 
     public static final transient short PROTOCOL_ID = 100;
 
-    // byte类型，最简单的整形
+    @Note("byte类型，最简单的整形")
     private byte a;
-    // byte的包装类型
-    // 优先使用基础类型，包装类型会有装箱拆箱
+    @Note("byte的包装类型，优先使用基础类型，包装类型会有装箱拆箱")
     private Byte aa;
-    /**
-     * 数组类型
-     */
+    @Note("数组类型")
     private byte[] aaa;
     private Byte[] aaaa;
 
@@ -98,6 +92,12 @@ public class ComplexObject implements IPacket {
     private Set<Set<ObjectA>> sss;
     private Set<String> ssss;
     private Set<Map<Integer, String>> sssss;
+
+    @Note("如果要修改协议并且兼容老协议，需要加上Compatible注解，按照增加的顺序添加order")
+    @Compatible(order = 1)
+    private int myCompatible;
+    @Compatible(order = 2)
+    private ObjectA myObject;
 
     @Override
     public short protocolId() {
@@ -510,6 +510,22 @@ public class ComplexObject implements IPacket {
 
     public void setSssss(Set<Map<Integer, String>> sssss) {
         this.sssss = sssss;
+    }
+
+    public int getMyCompatible() {
+        return myCompatible;
+    }
+
+    public void setMyCompatible(int myCompatible) {
+        this.myCompatible = myCompatible;
+    }
+
+    public ObjectA getMyObject() {
+        return myObject;
+    }
+
+    public void setMyObject(ObjectA myObject) {
+        this.myObject = myObject;
     }
 
     @Override

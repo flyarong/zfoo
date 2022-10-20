@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 /**
  * 单值缓存，会隔一段时间在后台刷新一下缓存
  *
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class SingleCache<V> {
@@ -61,12 +61,7 @@ public class SingleCache<V> {
             try {
                 if (now > refreshTime) {
                     refreshTime = now + refreshDuration;
-                    EventBus.asyncExecute().execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            cache = supplier.get();
-                        }
-                    });
+                    EventBus.asyncExecute(() -> cache = supplier.get());
                 }
             } finally {
                 lock.unlock();

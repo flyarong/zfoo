@@ -38,7 +38,7 @@ import java.util.function.Function;
  * <p>
  * 批量查找通过batchLoadCallback方法查找，当查找的key不存在的时候，调用defaultValueBuilder生成一个默认值放入缓存。
  *
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class SimpleCache<K, V> {
@@ -93,31 +93,25 @@ public class SimpleCache<K, V> {
                 });
 
 
-        SchedulerBus.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                // 不在任务调度线程中执行耗时任务，因为任务调度线程只有一个线程池
-                EventBus.asyncExecute().execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        var list = new ArrayList<K>();
-                        while (!linkedQueue.isEmpty()) {
-                            var key = linkedQueue.poll();
-                            list.add(key);
-                            if (list.size() >= BATCH_RELOAD_SIZE) {
-                                var result = batchLoadCallback.apply(list);
-                                result.forEach(it -> cache.put(it.getKey(), it.getValue()));
-                                list.clear();
-                            }
-                        }
-
-                        if (CollectionUtils.isNotEmpty(list)) {
-                            var result = batchLoadCallback.apply(list);
-                            result.forEach(it -> cache.put(it.getKey(), it.getValue()));
-                        }
+        SchedulerBus.scheduleAtFixedRate(() -> {
+            // 不在任务调度线程中执行耗时任务，因为任务调度线程只有一个线程池
+            EventBus.asyncExecute(() -> {
+                var list = new ArrayList<K>();
+                while (!linkedQueue.isEmpty()) {
+                    var key = linkedQueue.poll();
+                    list.add(key);
+                    if (list.size() >= BATCH_RELOAD_SIZE) {
+                        var result = batchLoadCallback.apply(list);
+                        result.forEach(it -> cache.put(it.getKey(), it.getValue()));
+                        list.clear();
                     }
-                });
-            }
+                }
+
+                if (CollectionUtils.isNotEmpty(list)) {
+                    var result = batchLoadCallback.apply(list);
+                    result.forEach(it -> cache.put(it.getKey(), it.getValue()));
+                }
+            });
         }, refreshDuration, TimeUnit.MILLISECONDS);
 
 

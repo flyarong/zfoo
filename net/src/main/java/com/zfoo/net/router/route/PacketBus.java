@@ -29,6 +29,7 @@ import com.zfoo.protocol.ProtocolManager;
 import com.zfoo.protocol.collection.ArrayUtils;
 import com.zfoo.protocol.exception.RunException;
 import com.zfoo.protocol.registration.IProtocolRegistration;
+import com.zfoo.protocol.registration.ProtocolAnalysis;
 import com.zfoo.protocol.util.AssertionUtils;
 import com.zfoo.protocol.util.ReflectionUtils;
 import com.zfoo.protocol.util.StringUtils;
@@ -48,19 +49,14 @@ public abstract class PacketBus {
     private static final Logger logger = LoggerFactory.getLogger(PacketBus.class);
 
     /**
-     * 客户端和服务端都有接受packet的方法，packetReceiverList对应的就是包的接收方法，将receiver注册到IProtocolRegistration
-     */
-    public static final IProtocolRegistration[] packetReceiverList = ProtocolManager.protocols;
-
-
-    /**
      * 正常消息的接收
      * <p>
      * 发送者同时能发送多个包
      * 接收者同时只能处理一个session的一个包，同一个发送者发送过来的包排队处理
      */
     public static void submit(Session session, IPacket packet, IAttachment attachment) {
-        var packetReceiver = (IPacketReceiver) packetReceiverList[packet.protocolId()].receiver();
+        // 客户端和服务端都有接受packet的方法，packetReceiverList对应的就是包的接收方法，将receiver注册到IProtocolRegistration
+        var packetReceiver = (IPacketReceiver) ProtocolManager.getProtocol(packet.protocolId()).receiver();
         if (packetReceiver == null) {
             throw new RuntimeException(StringUtils.format("no any packetReceiverDefinition found for this [packet:{}]", packet.getClass().getName()));
         }
@@ -125,15 +121,16 @@ public abstract class PacketBus {
             }
 
             try {
-                var protocolIdField = packetClazz.getDeclaredField(ProtocolManager.PROTOCOL_ID);
-                ReflectionUtils.makeAccessible(protocolIdField);
-                var protocolId = (short) protocolIdField.get(null);
-                var receiverDefinition = new PacketReceiverDefinition(bean, method, packetClazz, attachmentClazz);
-                var enhanceReceiverDefinition = EnhanceUtils.createPacketReceiver(receiverDefinition);
+                var protocolId = ProtocolAnalysis.getProtocolIdByClass(packetClazz);
 
                 // 将receiver注册到IProtocolRegistration
-                var protocolRegistration = packetReceiverList[protocolId];
+                var protocolRegistration = ProtocolManager.getProtocol(protocolId);
                 AssertionUtils.notNull(protocolRegistration, "协议类[class:{}][protocolId:{}]没有注册", packetClazz.getSimpleName(), protocolId);
+                AssertionUtils.isNull(protocolRegistration.receiver(), "协议类[class:{}]被重复接收[at{}]，一个协议只能对应一个被@PacketReceiver标注的方法"
+                        , packetClazz.getSimpleName(), packetClazz.getSimpleName());
+
+                var receiverDefinition = new PacketReceiverDefinition(bean, method, packetClazz, attachmentClazz);
+                var enhanceReceiverDefinition = EnhanceUtils.createPacketReceiver(receiverDefinition);
 
                 var receiverField = ReflectionUtils.getFieldByNameInPOJOClass(protocolRegistration.getClass(), "receiver");
                 ReflectionUtils.makeAccessible(receiverField);

@@ -22,12 +22,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-@EntityCache(cacheStrategy = "thousand", persister = @Persister("time30s"))
+@EntityCache(persister = @Persister("time30s"))
 public class MapEntity implements IEntity<Long> {
     @Id
     private long id;
 
     private Map<String, BagItem> bagMap = new HashMap<>();
+
+    private Map<String, Map<String, String>> baseMap = new HashMap<>();
 
     @Override
     public Long id() {
@@ -50,6 +52,13 @@ public class MapEntity implements IEntity<Long> {
         this.bagMap = bagMap;
     }
 
+    public Map<String, Map<String, String>> getBaseMap() {
+        return baseMap;
+    }
+
+    public void setBaseMap(Map<String, Map<String, String>> baseMap) {
+        this.baseMap = baseMap;
+    }
 
     @Override
     public boolean equals(Object o) {

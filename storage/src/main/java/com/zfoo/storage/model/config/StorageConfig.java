@@ -14,8 +14,8 @@
 package com.zfoo.storage.model.config;
 
 /**
- * @author jaysunxiao
- * @version 3.0
+ * @author godotg
+ * @version 4.0
  */
 public class StorageConfig {
 
@@ -24,8 +24,6 @@ public class StorageConfig {
     private String scanPackage;
 
     private String resourceLocation;
-
-    private String resourceSuffix;
 
     public String getId() {
         return id;
@@ -49,13 +47,5 @@ public class StorageConfig {
 
     public void setResourceLocation(String resourceLocation) {
         this.resourceLocation = resourceLocation;
-    }
-
-    public String getResourceSuffix() {
-        return resourceSuffix;
-    }
-
-    public void setResourceSuffix(String resourceSuffix) {
-        this.resourceSuffix = resourceSuffix;
     }
 }

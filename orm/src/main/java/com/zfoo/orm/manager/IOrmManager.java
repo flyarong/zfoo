@@ -15,14 +15,14 @@ package com.zfoo.orm.manager;
 
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoCollection;
-import com.zfoo.orm.model.cache.IEntityCaches;
+import com.zfoo.orm.cache.IEntityCaches;
 import com.zfoo.orm.model.entity.IEntity;
 import org.bson.Document;
 
 import java.util.Collection;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public interface IOrmManager {

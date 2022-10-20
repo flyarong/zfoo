@@ -22,8 +22,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * @author jaysunxiao
- * @version 3.0
+ * @author godotg
+ * @version 4.0
  */
 public class JsonToMapConverter implements ConditionalGenericConverter {
     @Override
@@ -39,7 +39,8 @@ public class JsonToMapConverter implements ConditionalGenericConverter {
     @Override
     public Object convert(Object source, TypeDescriptor sourceType, TypeDescriptor targetType) {
         String content = (String) source;
-        return JsonUtils.string2Object(content, targetType.getType());
+        return JsonUtils.string2Map(content, targetType.getMapKeyTypeDescriptor().getType(), targetType.getMapValueTypeDescriptor().getType());
+//        return JsonUtils.string2Object(content, targetType.getType());
         // return JsonUtil.string2Map(content, targetType.getMapKeyTypeDescriptor().getType()
         //         , targetType.getMapValueTypeDescriptor().getType());
     }

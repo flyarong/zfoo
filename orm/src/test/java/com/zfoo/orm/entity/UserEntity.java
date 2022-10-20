@@ -20,10 +20,10 @@ import java.util.List;
 
 
 /**
- * @author jaysunxiao
- * @version 3.0
+ * @author godotg
+ * @version 3.0@EntityCache(persister = @Persister("time30s"))
  */
-@EntityCache(cacheStrategy = "thousand", persister = @Persister("time30s"))
+@EntityCache
 public class UserEntity implements IEntity<Long> {
 
     @Id

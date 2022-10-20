@@ -14,6 +14,8 @@ package com.zfoo.protocol.util;
 
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.util.DefaultIndenter;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,7 +27,7 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public abstract class JsonUtils {
@@ -53,6 +55,10 @@ public abstract class JsonUtils {
         //反序列化
         //当反序列化有未知属性则抛异常，true打开这个设置
         MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+        //美化输出
+        DefaultPrettyPrinter prettyPrinter = (DefaultPrettyPrinter) MAPPER.getSerializationConfig().getDefaultPrettyPrinter();
+        DefaultPrettyPrinter.Indenter indenter = new DefaultIndenter(StringUtils.TAB_ASCII, FileUtils.LS);
+        prettyPrinter.indentObjectsWith(indenter);
 
         MAPPER_TURBO.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         MAPPER_TURBO.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
@@ -68,9 +74,19 @@ public abstract class JsonUtils {
         }
     }
 
+    //普通输出
     public static String object2String(Object object) {
         try {
             return MAPPER.writeValueAsString(object);
+        } catch (Exception e) {
+            throw new RunException(e, "将对象[object:{}]转换为json字符串时异常", object);
+        }
+    }
+
+    // 格式化/美化/优雅的输出
+    public static String object2StringPrettyPrinter(Object object) {
+        try {
+            return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(object);
         } catch (Exception e) {
             throw new RunException(e, "将对象[object:{}]转换为json字符串时异常", object);
         }
@@ -193,9 +209,9 @@ public abstract class JsonUtils {
                 // 循环遍历子节点下的信息
                 while (iterator.hasNext()) {
                     var node = iterator.next();
-                    var filed = node.getKey();
-                    var value = node.getValue().asText();
-                    jsonMap.put(filed, value);
+                    var field = node.getKey();
+                    var value = node.getValue().toString();
+                    jsonMap.put(field, value);
                 }
             }
             return jsonMap;

@@ -19,19 +19,29 @@
 
 <br/>
 
+简体中文 | [English](./README_EN.md)
+
 -----------
+Why is zfoo protocol ?
+-----------
+
+- 协议原生支持 C++ C# Java Go Javascript TypeScript GDScript Lua
+- 通用的分布式服务器协议实现，有其它语言的实现，可以轻易实现其它平台的的RPC，微服务
+- 二进制序列化速度最快的自定义格式框架，并且为序列化字节最少的框架，更加安全，可前后兼容
+- 单线程的Benchmark测试中，序列化和反序列化速度比Protobuf快50%，比Kryo快100%
+
 Ⅰ. zfoo简介🚩
 -----------
 
-- **极致性能，天生异步，Actor设计思想，无锁化设计，基于Spring的MVC式用法的万能RPC框架**
+- **极致性能，天生异步，Actor设计思想，无锁化设计，MVC式用法的万能RPC框架**
 - **极致序列化**，原生集成目前二进制序列化和反序列化速度最快的 [zfoo protocol](protocol/README.md) 作为网络通讯协议
 - **高可拓展性**，单台服务器部署，微服务部署，注册中心加集群部署，网关加集群部署，随意搭配
 - **上能做游戏服务器框架，下能做应用网站服务器框架**
 
 完善的工作开发流程，完整的线上解决方案
 
-- 普通java项目，spring项目，分布式项目，容器项目， **不停机无差别热更新代码** [hotswap](hotswap/src/test/java/com/zfoo/hotswap/ApplicationTest.java)
-- Excel配置自动映射和解析，**在线不停机热更新Excel配置** [storage](storage/src/test/java/com/zfoo/storage/ApplicationTest.java)
+- 普通java项目，spring项目，分布式项目，容器项目， **不停机完美热更新代码** [hotswap](hotswap/src/test/java/com/zfoo/hotswap/ApplicationTest.java)
+- Excel json csv配置自动映射和解析，**在线不停机热更新Excel配置** [storage](storage/src/test/java/com/zfoo/storage/ApplicationTest.java)
 - MongoDB的自动映射框架 [orm](orm/README.md)
 - 事件总线 [event](event/src/test/java/com/zfoo/event/ApplicationTest.java)
 - 时间任务调度 [scheduler](scheduler/README.md)
@@ -43,15 +53,16 @@
 - 性能需求极高的项目，如网站和游戏服务器框架，单服滚服，全球服，直播聊天，IM系统，实时推送
 - 节省研发成本的项目，如想节省，开发，部署，运维成本
 - 适合作为 **Godot，Unity，Cocos，Webgl，H5** 的后端基础框架，网络通信协议支持 tcp udp websocket http
-- 语言支持 **Java Javascript C# Lua GDScript**，可以轻易实现跨平台
 - 喜欢 [KISS法则](https://baike.baidu.com/item/KISS原则/3242383) 的项目 ，简单的配置，优雅的代码
 
 Ⅲ. 详细的教程和完整的工程案例
 --------------------
 
-- 有问题，先看 [FAQ](./doc/FAQ.md)，每个工程目录的test文件夹下都有标准的demo展示和注释说明，可以直接运行
+- 有问题，先看 [FAQ](./doc/FAQ.md) 能否解决你的问题
+- 依然有问题，参考每个工程目录的test文件夹下的标准demo展示和注释说明，可以直接运行
   - [问题讨论群QQ: 876280300](https://qm.qq.com/cgi-bin/qm/qr?k=uSo2FnXz50i5UZ1LYZS1sPsVWW9A34v-&jump_from=webapi) <a target="_blank" href="https://qm.qq.com/cgi-bin/qm/qr?k=uSo2FnXz50i5UZ1LYZS1sPsVWW9A34v-&jump_from=webapi"><img src="https://img.shields.io/badge/qq%E8%AE%A8%E8%AE%BA%E7%BE%A4-876280300-green"/></a>
 
+- 新手起步困难的话，直接看手把手的[zfoo 框架视频教程](./doc/video-tutorial.md)，新手友好，先从简单的基础使用开始，然后再深入到底层核心代码运行
 
 - [tank-game-server](https://github.com/zfoo-project/tank-game-server) 网络游戏《进击的坦克（The Fight of Tanks）》，新手友好，难度2星
   - 快速体验，tank游戏入口 [tank.zfoo.net](http://tank.zfoo.net)
@@ -62,9 +73,9 @@
 Ⅳ. 安装和使用⭐
 ------------
 
-#### 1. 环境要求
+#### 1. 环境要求和安装
 
-**JDK 11+**，可以在 **OpenJDK** 和 **Oracle JDK** 无缝切换
+**JDK 11+**，可以在 **OpenJDK** 和 **Oracle JDK** 无缝切换，下载完本项目，maven install到本地仓库即可使用
 
 ```
 如果你没有安装JDK 11+，快速的安装方法是在Idea的右上角Project Structure，Platform Settings，SDKs中直接下载
@@ -74,6 +85,7 @@
 
 ```
 // zfoo协议注册，只能初始化一次
+// 注意：实际项目中是通过读取protocol.xml文件自动完成协议注册的，无需调用此方法手动注册
 ProtocolManager.initProtocol(Set.of(ComplexObject.class, ObjectA.class, ObjectB.class));
 
 // 序列化
@@ -95,7 +107,7 @@ public void atUserInfoAsk(Session session, UserInfoAsk ask) {
 var userInfoAsk = UserInfoAsk.valueOf(userId);
 var answer = NetContext.getCosumer().syncAsk(userInfoAsk, UserInfoAnswer.class, userId).packet();
 
-// 消费者，异步请求远程用户信息，不会柱塞当前的线程，异步请求成功过后依然会在userId指定的线程执行逻辑
+// 消费者，异步请求远程用户信息，不会柱塞当前的线程，异步请求成功过后依然会在当前线程执行逻辑
 NetContext.getCosumer()
                     .asyncAsk(userInfoAsk, UserInfoAnswer.class, userId)
                     .whenComplete(sm -> {
@@ -114,7 +126,7 @@ HotSwapUtils.hotswapClass(bytes);
 
 ```
 // 无需自己写sql和任何配置，直接通过注解定义在数据库中定义一张表
-@EntityCache(cacheStrategy = "tenThousand", persister = @Persister("time30s"))
+@EntityCache
 public class UserEntity implements IEntity<Long> {
     @Id
     private long id;
@@ -166,7 +178,7 @@ public class StudentResource {
 
 - 欢迎喜欢这个项目的人来一起维护这个项目，提交代码的时候注意下面规范
 - Java项目格式化代码的方式采用IntelliJ Idea默认的格式化
-- 代码提交的说明(commit message)按照下面给出的些常用格式
+- [代码提交的说明(commit message)](https://github.com/pvdlg/conventional-changelog-metahub#commit-types) 按照下面给出的些常用格式
 
 ```
 feat[module]: 新增某一项功能

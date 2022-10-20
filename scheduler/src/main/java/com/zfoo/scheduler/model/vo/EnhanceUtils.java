@@ -24,13 +24,13 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public abstract class EnhanceUtils {
 
     static {
-        // 适配Tomcat，因为Tomcat不是用的默认的类加载器，而Javaassist用的是默认的加载器
+        // 适配Tomcat，因为Tomcat不是用的默认的类加载器，而Javassist用的是默认的加载器
         var classArray = new Class<?>[]{
                 IScheduler.class
         };

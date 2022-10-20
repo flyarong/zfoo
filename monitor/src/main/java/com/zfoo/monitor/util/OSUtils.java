@@ -17,6 +17,7 @@ import com.zfoo.monitor.model.*;
 import com.zfoo.protocol.util.IOUtils;
 import com.zfoo.protocol.util.StringUtils;
 import com.zfoo.scheduler.util.TimeUtils;
+import com.zfoo.util.net.NetUtils;
 import com.zfoo.util.security.IdUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +38,7 @@ import java.util.stream.Collectors;
 /**
  * Oshi库封装的工具类，通过此工具类，可获取系统、硬件相关信息
  *
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public abstract class OSUtils {
@@ -302,4 +303,10 @@ public abstract class OSUtils {
         return StringUtils.EMPTY;
     }
 
+    public static SystemInfoVO os() {
+        var processor = hardware.getProcessor();
+        var cpuLogicCore = processor.getLogicalProcessorCount();
+        var cpuName = processor.getProcessorIdentifier().getName();
+        return SystemInfoVO.valueOf(NetUtils.getLocalhostStr(), os.toString(), os.toString(), cpuLogicCore, cpuName);
+    }
 }

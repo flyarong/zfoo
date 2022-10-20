@@ -15,6 +15,7 @@ package com.zfoo.protocol.registration;
 
 import com.zfoo.protocol.IPacket;
 import com.zfoo.protocol.buffer.ByteBufUtils;
+import com.zfoo.protocol.registration.anno.Compatible;
 import com.zfoo.protocol.registration.field.IFieldRegistration;
 import com.zfoo.protocol.serializer.reflect.ISerializer;
 import com.zfoo.protocol.util.ReflectionUtils;
@@ -27,7 +28,7 @@ import java.lang.reflect.Field;
  * 协议必须为一个简单的POJO对象，必须有一个标识为private static final transient的PROTOCOL_ID号
  * 必须实现IPacket接口,返回的protocolId必须和PROTOCOL_ID号一致
  *
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class ProtocolRegistration implements IProtocolRegistration {
@@ -99,6 +100,10 @@ public class ProtocolRegistration implements IProtocolRegistration {
 
         for (int i = 0, length = fields.length; i < length; i++) {
             Field field = fields[i];
+            // 协议向后兼容
+            if (field.isAnnotationPresent(Compatible.class) && !buffer.isReadable()) {
+                break;
+            }
             IFieldRegistration packetFieldRegistration = fieldRegistrations[i];
             ISerializer serializer = packetFieldRegistration.serializer();
             Object fieldValue = serializer.readObject(buffer, packetFieldRegistration);

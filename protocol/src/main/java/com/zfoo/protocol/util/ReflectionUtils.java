@@ -30,7 +30,7 @@ import java.util.function.Predicate;
 /**
  * 反射工具类
  *
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public abstract class ReflectionUtils {
@@ -64,7 +64,7 @@ public abstract class ReflectionUtils {
         // Keep backing up the inheritance hierarchy.
         Class<?> targetClass = clazz;
         do {
-            var fields = clazz.getDeclaredFields();
+            var fields = targetClass.getDeclaredFields();
             for (var field : fields) {
                 ReflectionUtils.filterField(field, fieldFilter, fieldCallback);
             }

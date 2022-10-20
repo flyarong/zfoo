@@ -16,7 +16,7 @@ package com.zfoo.orm.model.anno;
 import java.lang.annotation.*;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 @Documented
@@ -24,7 +24,7 @@ import java.lang.annotation.*;
 @Target({ElementType.TYPE})
 public @interface EntityCache {
 
-    String cacheStrategy();
+    Cache cache() default @Cache;
 
     Persister persister() default @Persister;
 

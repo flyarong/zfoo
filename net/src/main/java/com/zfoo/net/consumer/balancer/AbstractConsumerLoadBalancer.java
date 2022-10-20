@@ -19,9 +19,11 @@ import com.zfoo.net.session.model.AttributeType;
 import com.zfoo.net.session.model.Session;
 import com.zfoo.protocol.IPacket;
 import com.zfoo.protocol.ProtocolManager;
+import com.zfoo.protocol.model.Pair;
 import com.zfoo.protocol.registration.ProtocolModule;
 import com.zfoo.protocol.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -61,16 +63,34 @@ public abstract class AbstractConsumerLoadBalancer implements IConsumerLoadBalan
                     var attribute = it.getAttribute(AttributeType.CONSUMER);
                     if (Objects.nonNull(attribute)) {
                         var registerVO = (RegisterVO) attribute;
-                        if (Objects.nonNull(registerVO.getProviderConfig()) && registerVO.getProviderConfig().getModules().contains(module)) {
-                            return true;
-                        } else {
-                            return false;
-                        }
+                        return Objects.nonNull(registerVO.getProviderConfig()) && registerVO.getProviderConfig().getProviders().stream().anyMatch(provider -> provider.getProtocolModule().equals(module));
                     } else {
                         return false;
                     }
                 })
                 .collect(Collectors.toList());
+        return sessions;
+    }
+
+    public List<Session> sessionsByModule(ProtocolModule module) {
+        var clientSessionMap = NetContext.getSessionManager().getClientSessionMap();
+        var sessions = new ArrayList<Session>();
+        for(var clientSession : clientSessionMap.values()) {
+            var attribute = clientSession.getAttribute(AttributeType.CONSUMER);
+            if (attribute == null) {
+                continue;
+            }
+
+            var registerVO = (RegisterVO) attribute;
+            var providerConfig = registerVO.getProviderConfig();
+            if (providerConfig == null) {
+                continue;
+            }
+
+            if (providerConfig.getProviders().stream().anyMatch(it -> it.getProtocolModule().getId() == module.getId())) {
+                sessions.add(clientSession);
+            }
+        }
         return sessions;
     }
 
@@ -88,6 +108,6 @@ public abstract class AbstractConsumerLoadBalancer implements IConsumerLoadBalan
         }
 
         var module = ProtocolManager.moduleByProtocolId(packet.protocolId());
-        return registerVO.getProviderConfig().getModules().contains(module);
+        return registerVO.getProviderConfig().getProviders().contains(module);
     }
 }

@@ -16,7 +16,7 @@ package com.zfoo.storage.schema;
 import com.zfoo.protocol.util.DomUtils;
 import com.zfoo.protocol.util.StringUtils;
 import com.zfoo.storage.StorageContext;
-import com.zfoo.storage.interpreter.ExcelResourceReader;
+import com.zfoo.storage.interpreter.ResourceReader;
 import com.zfoo.storage.manager.StorageManager;
 import com.zfoo.storage.model.config.StorageConfig;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
@@ -26,8 +26,8 @@ import org.springframework.beans.factory.xml.ParserContext;
 import org.w3c.dom.Element;
 
 /**
- * @author jaysunxiao
- * @version 3.0
+ * @author godotg
+ * @version 4.0
  */
 public class StorageDefinitionParser implements BeanDefinitionParser {
 
@@ -69,9 +69,9 @@ public class StorageDefinitionParser implements BeanDefinitionParser {
         resolvePlaceholder("id", "id", builder, element, parserContext);
         resolvePlaceholder("package", "scanPackage", builder, scanElement, parserContext);
         resolvePlaceholder("location", "resourceLocation", builder, resourceElement, parserContext);
-        resolvePlaceholder("suffix", "resourceSuffix", builder, resourceElement, parserContext);
 
         parserContext.getRegistry().registerBeanDefinition(clazz.getCanonicalName(), builder.getBeanDefinition());
+        
     }
 
     private void registerBeanDefinition(ParserContext parserContext) {
@@ -87,8 +87,8 @@ public class StorageDefinitionParser implements BeanDefinitionParser {
         builder = BeanDefinitionBuilder.rootBeanDefinition(clazz);
         registry.registerBeanDefinition(name, builder.getBeanDefinition());
 
-        // 注册ExcelResourceReader
-        clazz = ExcelResourceReader.class;
+        // 注册ResourceReader
+        clazz = ResourceReader.class;
         name = StringUtils.uncapitalize(clazz.getName());
         builder = BeanDefinitionBuilder.rootBeanDefinition(clazz);
         registry.registerBeanDefinition(name, builder.getBeanDefinition());

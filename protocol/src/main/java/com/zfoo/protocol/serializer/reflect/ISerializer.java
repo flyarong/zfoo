@@ -17,11 +17,18 @@ import com.zfoo.protocol.registration.field.IFieldRegistration;
 import io.netty.buffer.ByteBuf;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public interface ISerializer {
 
+    /**
+     * 往buffer中写入这个值是多少，及其反序列化时要用的解析类型是啥
+     *
+     * @param buffer            buffer缓冲区，存储二进制数控
+     * @param object            要写入到buffer中的对象
+     * @param fieldRegistration 标记下反序列化时读取这个值要用啥类型方式读取
+     */
     void writeObject(ByteBuf buffer, Object object, IFieldRegistration fieldRegistration);
 
     Object readObject(ByteBuf buffer, IFieldRegistration fieldRegistration);

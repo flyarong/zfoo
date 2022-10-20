@@ -13,15 +13,21 @@
 
 package com.zfoo.util;
 
+import io.netty.util.concurrent.EventExecutorGroup;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public abstract class ThreadUtils {
+
+    private static final Logger logger = LoggerFactory.getLogger(ThreadUtils.class);
 
     private static final int WAIT_TIME = 10;
     private static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
@@ -33,6 +39,33 @@ public abstract class ThreadUtils {
             throw new RuntimeException(e);
         }
     }
+
+    /**
+     * 获取当前线程的线程组
+     */
+    public static ThreadGroup currentThreadGroup() {
+        var s = System.getSecurityManager();
+        return (null != s) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
+    }
+
+    /**
+     * 通过线程号寻找对应的线程
+     */
+    public static Thread findThread(long threadId) {
+        var group = currentThreadGroup();
+        while (group != null) {
+            var threads = new Thread[group.activeCount() * 2];
+            var count = group.enumerate(threads, true);
+            for (var i = 0; i < count; i++) {
+                if (threadId == threads[i].getId()) {
+                    return threads[i];
+                }
+            }
+            group = group.getParent();
+        }
+        return null;
+    }
+
 
     public static void shutdown(ExecutorService executor) {
         try {
@@ -46,8 +79,23 @@ public abstract class ThreadUtils {
 
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            logger.error("[{}] is failed to shutdown! ", executor, e);
         }
+    }
+
+    public synchronized static void shutdownEventLoopGracefully(String executorGroupName, EventExecutorGroup executor) {
+        if (executor == null) {
+            return;
+        }
+        try {
+            if (!executor.isTerminated()) {
+                executor.shutdownGracefully();
+            }
+        } catch (Exception e) {
+            logger.error("[{}] is failed to shutdown! ", executorGroupName, e);
+            return;
+        }
+        logger.info("[{}] shutdown gracefully.", executorGroupName);
     }
 
     public static void shutdownForkJoinPool() {

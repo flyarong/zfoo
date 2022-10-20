@@ -21,14 +21,14 @@ import com.zfoo.protocol.util.StringUtils;
 import java.lang.reflect.Field;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class EnhanceLongSerializer implements IEnhanceSerializer {
 
     @Override
     public void writeObject(StringBuilder builder, String objectStr, Field field, IFieldRegistration fieldRegistration) {
-        if (field.getType().isPrimitive()) {
+        if (isPrimitiveField(field)) {
             builder.append(StringUtils.format("{}.writeLong($1, {});", EnhanceUtils.byteBufUtils, objectStr));
         } else {
             builder.append(StringUtils.format("{}.writeLongBox($1, (Long){});", EnhanceUtils.byteBufUtils, objectStr));
@@ -38,8 +38,7 @@ public class EnhanceLongSerializer implements IEnhanceSerializer {
     @Override
     public String readObject(StringBuilder builder, Field field, IFieldRegistration fieldRegistration) {
         var result = "result" + GenerateProtocolFile.index.getAndIncrement();
-
-        if (field.getType().isPrimitive()) {
+        if (isPrimitiveField(field)) {
             builder.append(StringUtils.format("long {} = {}.readLong($1);", result, EnhanceUtils.byteBufUtils));
         } else {
             builder.append(StringUtils.format("Long {} = {}.readLongBox($1);", result, EnhanceUtils.byteBufUtils));

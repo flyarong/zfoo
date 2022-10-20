@@ -16,8 +16,10 @@ package com.zfoo.orm;
 import com.mongodb.client.MongoClient;
 import com.zfoo.orm.manager.IOrmManager;
 import com.zfoo.orm.manager.OrmManager;
-import com.zfoo.orm.model.accessor.IAccessor;
-import com.zfoo.orm.model.query.IQuery;
+import com.zfoo.orm.accessor.IAccessor;
+import com.zfoo.orm.model.entity.IEntity;
+import com.zfoo.orm.query.IQuery;
+import com.zfoo.orm.query.IQueryBuilder;
 import com.zfoo.protocol.util.ReflectionUtils;
 import com.zfoo.scheduler.SchedulerContext;
 import com.zfoo.scheduler.model.StopWatch;
@@ -31,7 +33,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.Ordered;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class OrmContext implements ApplicationListener<ApplicationContextEvent>, Ordered {
@@ -62,8 +64,8 @@ public class OrmContext implements ApplicationListener<ApplicationContextEvent>,
         return instance.accessor;
     }
 
-    public static IQuery getQuery() {
-        return instance.query;
+    public static <E extends IEntity<?>> IQueryBuilder<E> getQuery(Class<E> entityClazz) {
+        return instance.query.builder(entityClazz);
     }
 
     public static IOrmManager getOrmManager() {

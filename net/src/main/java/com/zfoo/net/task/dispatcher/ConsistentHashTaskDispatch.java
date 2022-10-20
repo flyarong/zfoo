@@ -13,13 +13,16 @@
 
 package com.zfoo.net.task.dispatcher;
 
+import com.zfoo.net.session.model.AttributeType;
 import com.zfoo.net.task.TaskBus;
 import com.zfoo.net.task.model.PacketReceiverTask;
+import com.zfoo.util.math.HashUtils;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class ConsistentHashTaskDispatch extends AbstractTaskDispatch {
@@ -31,14 +34,22 @@ public class ConsistentHashTaskDispatch extends AbstractTaskDispatch {
     }
 
     @Override
-    public ExecutorService getExecutor(PacketReceiverTask packetReceiverTask) {
+    public Executor getExecutor(ExecutorService[] executors, PacketReceiverTask packetReceiverTask) {
         var attachment = packetReceiverTask.getAttachment();
 
         if (attachment == null) {
-            return SessionIdTaskDispatch.getInstance().getExecutor(packetReceiverTask);
+            var session = packetReceiverTask.getSession();
+            var uid = session.getAttribute(AttributeType.UID);
+
+            if (uid == null) {
+                return SessionIdTaskDispatch.getInstance().getExecutor(executors, packetReceiverTask);
+            } else {
+                return executors[TaskBus.executorIndex(HashUtils.fnvHash(uid))];
+            }
         }
 
-        return TaskBus.executor(attachment.executorConsistentHash());
+        // 可见最终是根据附加包的信息选择服务端由哪个线程执行这个业务
+        return executors[TaskBus.executorIndex(attachment.executorConsistentHash())];
     }
 
 }

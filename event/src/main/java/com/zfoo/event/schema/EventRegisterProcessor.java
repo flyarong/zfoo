@@ -29,7 +29,10 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
 import java.lang.reflect.Modifier;
 
 /**
- * @author jaysunxiao
+ * 这是一个后置处理器，在boot项目中注册EventContext时，会import导入EventRegisterProcessor这个组件，这是一个后置处理器，
+ * 断点发现 在AbstractAutowireCapableBeanFactory或调用getBeanPostProcessors，这样子每一个Bean创建后都会走postProcessAfterInitialization这个方法
+ *
+ * @author godotg
  * @version 3.0
  */
 public class EventRegisterProcessor implements BeanPostProcessor {
@@ -78,6 +81,8 @@ public class EventRegisterProcessor implements BeanPostProcessor {
 
                 var receiverDefinition = new EventReceiverDefinition(bean, method, eventClazz);
                 var enhanceReceiverDefinition = EnhanceUtils.createEventReceiver(receiverDefinition);
+
+                // key:class类型 value:观察者 注册Event的receiverMap中
                 EventBus.registerEventReceiver(eventClazz, enhanceReceiverDefinition);
             }
         } catch (Throwable t) {

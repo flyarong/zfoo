@@ -16,11 +16,13 @@ package com.zfoo.protocol.collection;
 import com.zfoo.protocol.collection.model.NaturalComparator;
 import com.zfoo.protocol.model.Pair;
 import com.zfoo.protocol.util.AssertionUtils;
+import com.zfoo.protocol.util.IOUtils;
+import com.zfoo.protocol.util.StringUtils;
 
 import java.util.*;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public abstract class CollectionUtils {
@@ -72,43 +74,47 @@ public abstract class CollectionUtils {
         return isEmpty(map) ? Collections.emptyIterator() : map.entrySet().iterator();
     }
 
-
-    /**
-     * 固定大小集合，如果初始化容量为0，则后续无法继续增加集合容量
-     */
-    public static List<?> newFixedList(int size) {
-        return size <= 0 ? Collections.EMPTY_LIST : new ArrayList<>(size);
+    public static <T> List<T> emptyList() {
+        return new ArrayList<>();
     }
 
-    public static Set<?> newFixedSet(int size) {
-        return size <= 0 ? Collections.EMPTY_SET : new HashSet<>(comfortableCapacity(size));
+    public static <T> Set<T> emptySet() {
+        return new HashSet<>();
     }
 
-    public static Map<?, ?> newFixedMap(int size) {
-        return size <= 0 ? Collections.EMPTY_MAP : new HashMap<>(comfortableCapacity(size));
+    public static <K, V> Map<K, V> emptyMap() {
+        return new HashMap<>();
+    }
+
+    public static <T> List<T> newList(int size) {
+        return size <= 0 ? new ArrayList<>() : new ArrayList<>(comfortableLength(size));
+    }
+
+    public static <T> Set<T> newSet(int size) {
+        return size <= 0 ? new HashSet<>() : new HashSet<>(comfortableCapacity(size));
+    }
+
+    public static <K, V> Map<K, V> newMap(int size) {
+        return size <= 0 ? new HashMap<>() : new HashMap<>(comfortableCapacity(size));
     }
 
     /**
-     * The largest power of two that can be represented as an {@code int}.
+     * 数组初始化长度的安全上限限制，防止反序列化异常导致内存突然升高
      */
-    public static final int MAX_POWER_OF_TWO = 1 << (Integer.SIZE - 2);
-
-    /**
-     * 计算HashMap初始化合适的大小
-     * <p>
-     * from com.google.common.collect.Maps.capacity()
-     */
-    public static int comfortableCapacity(int expectedSize) {
-        if (expectedSize < 3) {
-            return expectedSize + 1;
+    public static int comfortableLength(int length) {
+        if (length >= IOUtils.BYTES_PER_MB) {
+            throw new ArrayStoreException(StringUtils.format("新建数组的长度[{}]超过设置的安全范围[{}]", length, IOUtils.BYTES_PER_MB));
         }
+        return length;
+    }
 
-        if (expectedSize < MAX_POWER_OF_TWO) {
-            return (int) ((float) expectedSize / 0.75F + 1.0F);
-        }
-
-        // any large value
-        return Integer.MAX_VALUE;
+    /**
+     * 计算List和HashMap初始化合适的大小，为了安全必须给初始化的集合一个最大上限，防止反序列化一个不合法的包导致内存突然升高
+     */
+    public static int comfortableCapacity(int capacity) {
+        return capacity < 16
+                ? (capacity < 8 ? 16 : 32)
+                : (capacity < 32 ? 64 : Math.min(capacity << 1, IOUtils.BYTES_PER_MB));
     }
 
     // ----------------------------------归并排序----------------------------------
@@ -281,7 +287,7 @@ public abstract class CollectionUtils {
      */
     public static <T> List<T> subListLast(List<T> list, int num) {
         if (isEmpty(list)) {
-            return Collections.emptyList();
+            return emptyList();
         }
 
         var startIndex = list.size() - num;

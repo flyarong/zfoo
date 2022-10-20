@@ -16,7 +16,7 @@ package com.zfoo.orm.model.anno;
 import java.lang.annotation.*;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 @Documented
@@ -26,4 +26,7 @@ public @interface Index {
     boolean ascending();
 
     boolean unique();
+
+    // 默认小于0不开启TTL文档超时索引
+    long ttlExpireAfterSeconds() default -1L;
 }

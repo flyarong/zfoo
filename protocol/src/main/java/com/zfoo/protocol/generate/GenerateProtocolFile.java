@@ -17,11 +17,14 @@ import com.zfoo.protocol.registration.IProtocolRegistration;
 import com.zfoo.protocol.registration.ProtocolAnalysis;
 import com.zfoo.protocol.registration.ProtocolRegistration;
 import com.zfoo.protocol.serializer.CodeLanguage;
-import com.zfoo.protocol.serializer.cs.GenerateCsUtils;
-import com.zfoo.protocol.serializer.gd.GenerateGdUtils;
-import com.zfoo.protocol.serializer.js.GenerateJsUtils;
+import com.zfoo.protocol.serializer.cpp.GenerateCppUtils;
+import com.zfoo.protocol.serializer.csharp.GenerateCsUtils;
+import com.zfoo.protocol.serializer.gdscript.GenerateGdUtils;
+import com.zfoo.protocol.serializer.go.GenerateGoUtils;
+import com.zfoo.protocol.serializer.javascript.GenerateJsUtils;
 import com.zfoo.protocol.serializer.lua.GenerateLuaUtils;
 import com.zfoo.protocol.serializer.protobuf.GenerateProtobufUtils;
+import com.zfoo.protocol.serializer.typescript.GenerateTsUtils;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -34,7 +37,7 @@ import java.util.stream.Collectors;
 import static com.zfoo.protocol.util.StringUtils.TAB;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public abstract class GenerateProtocolFile {
@@ -56,6 +59,13 @@ public abstract class GenerateProtocolFile {
         index = null;
     }
 
+    /**
+     * 生成各种语言的协议文件
+     *
+     * @param generateOperation
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     public static void generate(GenerateOperation generateOperation) throws IOException, ClassNotFoundException {
         var protocols = ProtocolManager.protocols;
 
@@ -88,7 +98,7 @@ public abstract class GenerateProtocolFile {
                 .collect(Collectors.toList());
 
         // 解析协议的文档注释
-        GenerateProtocolDocument.initProtocolDocument(allSortedGenerateProtocols);
+        GenerateProtocolNote.initProtocolNote(allSortedGenerateProtocols);
 
 
         // 计算协议生成的路径
@@ -96,33 +106,68 @@ public abstract class GenerateProtocolFile {
             GenerateProtocolPath.initProtocolPath(allSortedGenerateProtocols);
         }
 
-        // 生成C#协议
+        // 生成C++协议
         var generateLanguages = generateOperation.getGenerateLanguages();
+        if (generateLanguages.contains(CodeLanguage.Cpp)) {
+            GenerateCppUtils.init(generateOperation);
+            GenerateCppUtils.createProtocolManager(allSortedGenerateProtocols);
+            for (var protocolRegistration : allSortedGenerateProtocols) {
+                GenerateCppUtils.createCppProtocolFile((ProtocolRegistration) protocolRegistration);
+            }
+        }
+
+        // 生成Golang协议
+        if (generateLanguages.contains(CodeLanguage.Go)) {
+            GenerateGoUtils.init(generateOperation);
+            GenerateGoUtils.createProtocolManager(allSortedGenerateProtocols);
+            for (var protocolRegistration : allSortedGenerateProtocols) {
+                GenerateGoUtils.createGoProtocolFile((ProtocolRegistration) protocolRegistration);
+            }
+        }
+
+        // 生成C#协议
         if (generateLanguages.contains(CodeLanguage.CSharp)) {
             GenerateCsUtils.init(generateOperation);
             GenerateCsUtils.createProtocolManager();
-            allSortedGenerateProtocols.forEach(it -> GenerateCsUtils.createCsProtocolFile((ProtocolRegistration) it));
+            for (var protocolRegistration : allSortedGenerateProtocols) {
+                GenerateCsUtils.createCsProtocolFile((ProtocolRegistration) protocolRegistration);
+            }
         }
 
         // 生成Javascript协议
         if (generateLanguages.contains(CodeLanguage.JavaScript)) {
             GenerateJsUtils.init(generateOperation);
-            allSortedGenerateProtocols.forEach(it -> GenerateJsUtils.createJsProtocolFile((ProtocolRegistration) it));
+            for (var protocolRegistration : allSortedGenerateProtocols) {
+                GenerateJsUtils.createJsProtocolFile((ProtocolRegistration) protocolRegistration);
+            }
             GenerateJsUtils.createProtocolManager(allSortedGenerateProtocols);
+        }
+
+        // 生成TypeScript协议
+        if (generateLanguages.contains(CodeLanguage.TypeScript)) {
+            GenerateTsUtils.init(generateOperation);
+            for (var protocolRegistration : allSortedGenerateProtocols) {
+                GenerateTsUtils.createTsProtocolFile((ProtocolRegistration) protocolRegistration);
+            }
+            GenerateTsUtils.createProtocolManager(allSortedGenerateProtocols);
         }
 
         // 生成Lua协议
         if (generateLanguages.contains(CodeLanguage.Lua)) {
             GenerateLuaUtils.init(generateOperation);
             GenerateLuaUtils.createProtocolManager(allSortedGenerateProtocols);
-            allSortedGenerateProtocols.forEach(it -> GenerateLuaUtils.createLuaProtocolFile((ProtocolRegistration) it));
+            for (var protocolRegistration : allSortedGenerateProtocols) {
+                GenerateLuaUtils.createLuaProtocolFile((ProtocolRegistration) protocolRegistration);
+            }
         }
 
         // 生成GdScript协议
         if (generateLanguages.contains(CodeLanguage.GdScript)) {
             GenerateGdUtils.init(generateOperation);
             GenerateGdUtils.createProtocolManager(allSortedGenerateProtocols);
-            allSortedGenerateProtocols.forEach(it -> GenerateGdUtils.createGdProtocolFile((ProtocolRegistration) it));
+            for (var protocolRegistration : allSortedGenerateProtocols) {
+                GenerateGdUtils.createGdProtocolFile((ProtocolRegistration) protocolRegistration);
+            }
         }
 
         // 生成Protobuf协议

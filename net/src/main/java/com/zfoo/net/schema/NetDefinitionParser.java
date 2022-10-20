@@ -20,7 +20,6 @@ import com.zfoo.net.consumer.Consumer;
 import com.zfoo.net.packet.service.PacketService;
 import com.zfoo.net.router.Router;
 import com.zfoo.net.session.manager.SessionManager;
-import com.zfoo.protocol.registration.ProtocolModule;
 import com.zfoo.protocol.util.DomUtils;
 import com.zfoo.protocol.util.StringUtils;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
@@ -56,6 +55,7 @@ public class NetDefinitionParser implements BeanDefinitionParser {
         // 注册ConfigManager
         clazz = ConfigManager.class;
         builder = BeanDefinitionBuilder.rootBeanDefinition(clazz);
+        // 把Spring容器中的NetConfig引用赋值给ConfigManager中的localConfig属性
         builder.addPropertyReference("localConfig", NetConfig.class.getCanonicalName());
         parserContext.getRegistry().registerBeanDefinition(clazz.getCanonicalName(), builder.getBeanDefinition());
 
@@ -75,6 +75,7 @@ public class NetDefinitionParser implements BeanDefinitionParser {
         parserContext.getRegistry().registerBeanDefinition(clazz.getCanonicalName(), builder.getBeanDefinition());
 
         // 注册SessionManager
+        // 里面的serverSessionMap 和 clientSessionMap 是根据自己是客户端还是服务器保存连接自己 和 自己连接 的网络节点信息
         clazz = SessionManager.class;
         builder = BeanDefinitionBuilder.rootBeanDefinition(clazz);
         parserContext.getRegistry().registerBeanDefinition(clazz.getCanonicalName(), builder.getBeanDefinition());
@@ -83,45 +84,70 @@ public class NetDefinitionParser implements BeanDefinitionParser {
     }
 
 
+    /**
+     * 解析config标签，并且注册NetConfig类到Spring容器
+     *
+     * @param element
+     * @param parserContext
+     */
     private void parseNetConfig(Element element, ParserContext parserContext) {
+        // 要注册到Spring的类，下面都是进行解析自定义标签，把值赋值给NetConfig的属性
         var clazz = NetConfig.class;
         var builder = BeanDefinitionBuilder.rootBeanDefinition(clazz);
 
+        // -----config属性解析-----
+        // 解析id
         resolvePlaceholder("id", "id", builder, element, parserContext);
+
+        // 协议protocol.xml文件的位置。 注意：直接写protocol.xml 则是从resources目录下读
         resolvePlaceholder("protocol-location", "protocolLocation", builder, element, parserContext);
-        resolvePlaceholder("generate-js-protocol", "generateJsProtocol", builder, element, parserContext);
-        resolvePlaceholder("generate-cs-protocol", "generateCsProtocol", builder, element, parserContext);
-        resolvePlaceholder("generate-lua-protocol", "generateLuaProtocol", builder, element, parserContext);
-        resolvePlaceholder("generate-gd-protocol", "generateGdProtocol", builder, element, parserContext);
-        resolvePlaceholder("generate-protobuf-protocol", "generateProtobufProtocol", builder, element, parserContext);
+
+        // 各种语言的文件是否生成
+        resolvePlaceholder("javascript-protocol", "javascriptProtocol", builder, element, parserContext);
+        resolvePlaceholder("typescript-protocol", "typescriptProtocol", builder, element, parserContext);
+        resolvePlaceholder("csharp-protocol", "csharpProtocol", builder, element, parserContext);
+        resolvePlaceholder("lua-protocol", "luaProtocol", builder, element, parserContext);
+        resolvePlaceholder("gdscript-protocol", "gdscriptProtocol", builder, element, parserContext);
+        resolvePlaceholder("cpp-protocol", "cppProtocol", builder, element, parserContext);
+        resolvePlaceholder("go-protocol", "goProtocol", builder, element, parserContext);
+        resolvePlaceholder("protobuf-protocol", "protobufProtocol", builder, element, parserContext);
+
+        // 文件是否折叠
         resolvePlaceholder("fold-protocol", "foldProtocol", builder, element, parserContext);
+
         resolvePlaceholder("protocol-path", "protocolPath", builder, element, parserContext);
+
         resolvePlaceholder("protocol-param", "protocolParam", builder, element, parserContext);
 
+        // -----注册中心解析-----
+        // 上面解析的都是config标签的属性，这里开始解析registry元素
         var registryElement = DomUtils.getFirstChildElementByTagName(element, "registry");
         if (registryElement != null) {
             parseRegistryConfig(registryElement, parserContext);
             builder.addPropertyReference("registry", RegistryConfig.class.getCanonicalName());
         }
 
+        // ----- monitor解析-----
         var monitorElement = DomUtils.getFirstChildElementByTagName(element, "monitor");
         if (monitorElement != null) {
             parseMonitorConfig(monitorElement, parserContext);
             builder.addPropertyReference("monitor", MonitorConfig.class.getCanonicalName());
         }
 
-        var providerElement = DomUtils.getFirstChildElementByTagName(element, "provider");
+        // -----服务器生产者解析-----
+        var providerElement = DomUtils.getFirstChildElementByTagName(element, "providers");
         if (providerElement != null) {
-            builder.addPropertyReference("provider", ProviderConfig.class.getCanonicalName());
             parseProviderConfig(providerElement, parserContext);
+            builder.addPropertyReference("provider", ProviderConfig.class.getCanonicalName());
         }
 
-        var consumerElement = DomUtils.getFirstChildElementByTagName(element, "consumer");
+        var consumerElement = DomUtils.getFirstChildElementByTagName(element, "consumers");
         if (consumerElement != null) {
             parseConsumerConfig(consumerElement, parserContext);
             builder.addPropertyReference("consumer", ConsumerConfig.class.getCanonicalName());
         }
 
+        // 注册NetConfig到Spring容器中
         parserContext.getRegistry().registerBeanDefinition(clazz.getCanonicalName(), builder.getBeanDefinition());
     }
 
@@ -157,8 +183,10 @@ public class NetDefinitionParser implements BeanDefinitionParser {
         resolvePlaceholder("thread", "thread", builder, element, parserContext);
         resolvePlaceholder("address", "address", builder, element, parserContext);
 
-        var providerModules = parseModules("provider", element, parserContext);
-        builder.addPropertyValue("modules", providerModules);
+        var providerModules = parseProviderModules("providers", element, parserContext);
+        builder.addPropertyValue("providers", providerModules);
+
+        // 注册Consumer到Spring容器中
         parserContext.getRegistry().registerBeanDefinition(clazz.getCanonicalName(), builder.getBeanDefinition());
     }
 
@@ -166,23 +194,41 @@ public class NetDefinitionParser implements BeanDefinitionParser {
         var clazz = ConsumerConfig.class;
         var builder = BeanDefinitionBuilder.rootBeanDefinition(clazz);
 
-        resolvePlaceholder("load-balancer", "loadBalancer", builder, element, parserContext);
-
-        var consumerModules = parseModules("consumer", element, parserContext);
-        builder.addPropertyValue("modules", consumerModules);
+        var consumerModules = parseConsumerModules("consumers", element, parserContext);
+        builder.addPropertyValue("consumers", consumerModules);
         parserContext.getRegistry().registerBeanDefinition(clazz.getCanonicalName(), builder.getBeanDefinition());
     }
 
-    private ManagedList<BeanDefinitionHolder> parseModules(String param, Element element, ParserContext parserContext) {
-        var moduleElementList = DomUtils.getChildElementsByTagName(element, "module");
+
+    private ManagedList<BeanDefinitionHolder> parseProviderModules(String param, Element element, ParserContext parserContext) {
+        var moduleElementList = DomUtils.getChildElementsByTagName(element, "provider");
+        var providers = new ManagedList<BeanDefinitionHolder>();
+        var environment = parserContext.getReaderContext().getEnvironment();
+        for (var i = 0; i < moduleElementList.size(); i++) {
+            var addressElement = moduleElementList.get(i);
+            var clazz = ProviderModule.class;
+            var builder = BeanDefinitionBuilder.rootBeanDefinition(clazz);
+
+            builder.addConstructorArgValue(environment.resolvePlaceholders(addressElement.getAttribute("protocol-module")));
+            builder.addConstructorArgValue(environment.resolvePlaceholders(addressElement.getAttribute("provider")));
+
+            providers.add(new BeanDefinitionHolder(builder.getBeanDefinition(), StringUtils.format("{}.{}{}", clazz.getCanonicalName(), param, i)));
+        }
+        return providers;
+    }
+
+    private ManagedList<BeanDefinitionHolder> parseConsumerModules(String param, Element element, ParserContext parserContext) {
+        var moduleElementList = DomUtils.getChildElementsByTagName(element, "consumer");
         var modules = new ManagedList<BeanDefinitionHolder>();
         var environment = parserContext.getReaderContext().getEnvironment();
         for (var i = 0; i < moduleElementList.size(); i++) {
             var addressElement = moduleElementList.get(i);
-            var clazz = ProtocolModule.class;
+            var clazz = ConsumerModule.class;
             var builder = BeanDefinitionBuilder.rootBeanDefinition(clazz);
 
-            builder.addConstructorArgValue(environment.resolvePlaceholders(addressElement.getAttribute("name")));
+            builder.addConstructorArgValue(environment.resolvePlaceholders(addressElement.getAttribute("protocol-module")));
+            builder.addConstructorArgValue(environment.resolvePlaceholders(addressElement.getAttribute("load-balancer")));
+            builder.addConstructorArgValue(environment.resolvePlaceholders(addressElement.getAttribute("consumer")));
 
             modules.add(new BeanDefinitionHolder(builder.getBeanDefinition(), StringUtils.format("{}.{}{}", clazz.getCanonicalName(), param, i)));
         }

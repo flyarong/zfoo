@@ -15,7 +15,9 @@
 安装好以后，在git bash中输入：git --version，有结果返回则表示安装成功
 ```
 
-- git下载代码慢的解决方法|无法下载代码的解决方法
+- 参看所有的git配置，git config --list
+
+- git下载代码慢的解决方法|无法下载代码的解决方法，取消git配置使用git config --global --unset http.proxy
 
 ```
 使用vpn
@@ -139,7 +141,7 @@ Line separator，Unix and MacOs （\n）
  */
 ```
 
-- 版权信息设置：Editor->Copyright->Copyright Profiles
+- 版权信息设置：Editor->Copyright->Copyright Profiles，注意下面的版权信息不要有多余的换行
 
 ```
 Copyright (C) 2020 The zfoo Authors

@@ -18,10 +18,17 @@ import com.zfoo.protocol.registration.field.IFieldRegistration;
 import java.lang.reflect.Field;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public interface IEnhanceSerializer {
+
+    default boolean isPrimitiveField(Field field) {
+        if (field.getType().isPrimitive()) {
+            return true;
+        }
+        return field.getType().isArray() && field.getType().getComponentType().isPrimitive();
+    }
 
     /**
      * IProtocolRegistration.write(ByteBuf buffer, IPacket packet);

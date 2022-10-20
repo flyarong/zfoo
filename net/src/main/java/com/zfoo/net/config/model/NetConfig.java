@@ -23,8 +23,6 @@ import java.util.Objects;
  * @version 3.0
  */
 public class NetConfig {
-
-
     private String id;
     private String protocolLocation;
 
@@ -34,16 +32,37 @@ public class NetConfig {
     private boolean foldProtocol;
     private String protocolPath;
     private String protocolParam;
-    private boolean generateJsProtocol;
-    private boolean generateCsProtocol;
-    private boolean generateLuaProtocol;
-    private boolean generateGdProtocol;
-    private boolean generateProtobufProtocol;
 
+    /**
+     * 是否生成对应语言的协议
+     */
+    private boolean javascriptProtocol;
+    private boolean typescriptProtocol;
+    private boolean csharpProtocol;
+    private boolean luaProtocol;
+    private boolean gdscriptProtocol;
+    private boolean cppProtocol;
+    private boolean goProtocol;
+    private boolean protobufProtocol;
+
+    /**
+     * 注册中心
+     */
     private RegistryConfig registry;
+
+    /**
+     * 监控
+     */
     private MonitorConfig monitor;
 
+    /**
+     * 生产者配置
+     */
     private ProviderConfig provider;
+
+    /**
+     * 消费者配置
+     */
     private ConsumerConfig consumer;
 
 
@@ -91,28 +110,28 @@ public class NetConfig {
         this.protocolParam = protocolParam;
     }
 
-    public boolean isGenerateJsProtocol() {
-        return generateJsProtocol;
+    public boolean isJavascriptProtocol() {
+        return javascriptProtocol;
     }
 
-    public void setGenerateJsProtocol(boolean generateJsProtocol) {
-        this.generateJsProtocol = generateJsProtocol;
+    public void setJavascriptProtocol(boolean javascriptProtocol) {
+        this.javascriptProtocol = javascriptProtocol;
     }
 
-    public boolean isGenerateCsProtocol() {
-        return generateCsProtocol;
+    public boolean isCsharpProtocol() {
+        return csharpProtocol;
     }
 
-    public void setGenerateCsProtocol(boolean generateCsProtocol) {
-        this.generateCsProtocol = generateCsProtocol;
+    public void setCsharpProtocol(boolean csharpProtocol) {
+        this.csharpProtocol = csharpProtocol;
     }
 
-    public boolean isGenerateLuaProtocol() {
-        return generateLuaProtocol;
+    public boolean isLuaProtocol() {
+        return luaProtocol;
     }
 
-    public void setGenerateLuaProtocol(boolean generateLuaProtocol) {
-        this.generateLuaProtocol = generateLuaProtocol;
+    public void setLuaProtocol(boolean luaProtocol) {
+        this.luaProtocol = luaProtocol;
     }
 
     public RegistryConfig getRegistry() {
@@ -147,20 +166,44 @@ public class NetConfig {
         this.consumer = consumer;
     }
 
-    public boolean isGenerateGdProtocol() {
-        return generateGdProtocol;
+    public boolean isGdscriptProtocol() {
+        return gdscriptProtocol;
     }
 
-    public void setGenerateGdProtocol(boolean generateGdProtocol) {
-        this.generateGdProtocol = generateGdProtocol;
+    public void setGdscriptProtocol(boolean gdscriptProtocol) {
+        this.gdscriptProtocol = gdscriptProtocol;
     }
 
-    public boolean isGenerateProtobufProtocol() {
-        return generateProtobufProtocol;
+    public boolean isProtobufProtocol() {
+        return protobufProtocol;
     }
 
-    public void setGenerateProtobufProtocol(boolean generateProtobufProtocol) {
-        this.generateProtobufProtocol = generateProtobufProtocol;
+    public void setProtobufProtocol(boolean protobufProtocol) {
+        this.protobufProtocol = protobufProtocol;
+    }
+
+    public boolean isCppProtocol() {
+        return cppProtocol;
+    }
+
+    public void setCppProtocol(boolean cppProtocol) {
+        this.cppProtocol = cppProtocol;
+    }
+
+    public boolean isTypescriptProtocol() {
+        return typescriptProtocol;
+    }
+
+    public void setTypescriptProtocol(boolean typescriptProtocol) {
+        this.typescriptProtocol = typescriptProtocol;
+    }
+
+    public boolean isGoProtocol() {
+        return goProtocol;
+    }
+
+    public void setGoProtocol(boolean goProtocol) {
+        this.goProtocol = goProtocol;
     }
 
     @Override

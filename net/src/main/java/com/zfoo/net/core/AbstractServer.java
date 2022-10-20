@@ -14,6 +14,7 @@
 package com.zfoo.net.core;
 
 import com.zfoo.protocol.util.IOUtils;
+import com.zfoo.util.ThreadUtils;
 import com.zfoo.util.net.HostAndPort;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -68,9 +69,10 @@ public abstract class AbstractServer implements IServer {
 
     protected synchronized void doStart(ChannelInitializer<? extends Channel> channelChannelInitializer) {
         var cpuNum = Runtime.getRuntime().availableProcessors();
+        // 一条线程持有一个端口对应的selector，如果我们启动不仅仅是一个服务器端口的话，为了更好的性能需要修改对应的bossGroup数量
         bossGroup = Epoll.isAvailable()
-                ? new EpollEventLoopGroup(Math.max(1, cpuNum / 4), new DefaultThreadFactory("netty-boss", true))
-                : new NioEventLoopGroup(Math.max(1, cpuNum / 4), new DefaultThreadFactory("netty-boss", true));
+                ? new EpollEventLoopGroup(Math.max(1, cpuNum / 8), new DefaultThreadFactory("netty-boss", true))
+                : new NioEventLoopGroup(Math.max(1, cpuNum / 8), new DefaultThreadFactory("netty-boss", true));
 
         workerGroup = Epoll.isAvailable()
                 ? new EpollEventLoopGroup(cpuNum * 2, new DefaultThreadFactory("netty-worker", true))
@@ -102,9 +104,8 @@ public abstract class AbstractServer implements IServer {
 
     @Override
     public synchronized void shutdown() {
-        shutdownEventLoopGracefully(bossGroup);
-
-        shutdownEventLoopGracefully(workerGroup);
+        ThreadUtils.shutdownEventLoopGracefully("netty-boss", bossGroup);
+        ThreadUtils.shutdownEventLoopGracefully("netty-worker", workerGroup);
 
         if (channelFuture != null) {
             try {
@@ -128,14 +129,14 @@ public abstract class AbstractServer implements IServer {
             return;
         }
         try {
-            if (executor.isShutdown() || executor.isTerminated()) {
+            if (!executor.isTerminated()) {
                 executor.shutdownGracefully();
             }
         } catch (Exception e) {
             logger.error("EventLoop Thread pool [{}] is failed to shutdown! ", executor, e);
             return;
         }
-        logger.info("EventLoop Thread pool [{}] shuts down gracefully.", executor);
+        logger.info("EventLoop Thread pool [{}] shutdown gracefully.", executor);
     }
 
     public synchronized static void shutdownAllServers() {

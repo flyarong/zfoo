@@ -15,17 +15,20 @@ package com.zfoo.storage;
 
 import com.zfoo.storage.model.anno.ResInjection;
 import com.zfoo.storage.model.vo.Storage;
+import com.zfoo.storage.resource.StudentCsvResource;
 import com.zfoo.storage.resource.StudentResource;
 import org.springframework.stereotype.Component;
 
 /**
- * @author jaysunxiao
- * @version 3.0
+ * @author godotg
+ * @version 4.0
  */
 @Component
 public class StudentManager {
 
     @ResInjection
     public Storage<Integer, StudentResource> studentResources;
+    @ResInjection
+    public Storage<Integer, StudentCsvResource> studentCsvResources;
 
 }

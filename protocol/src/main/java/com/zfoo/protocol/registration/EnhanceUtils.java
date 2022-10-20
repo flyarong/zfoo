@@ -18,6 +18,7 @@ import com.zfoo.protocol.buffer.ByteBufUtils;
 import com.zfoo.protocol.collection.ArrayUtils;
 import com.zfoo.protocol.collection.CollectionUtils;
 import com.zfoo.protocol.generate.GenerateProtocolFile;
+import com.zfoo.protocol.registration.anno.Compatible;
 import com.zfoo.protocol.registration.field.IFieldRegistration;
 import com.zfoo.protocol.serializer.enhance.*;
 import com.zfoo.protocol.serializer.reflect.*;
@@ -27,7 +28,6 @@ import io.netty.buffer.ByteBuf;
 import javassist.*;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 /**
  * 对应于ProtocolRegistration
  *
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public abstract class EnhanceUtils {
@@ -51,28 +51,19 @@ public abstract class EnhanceUtils {
     public static String byteBufUtilsWriteInt0 = byteBufUtils + ".writeInt($1, 0);";
 
     static {
-        var classArray = new Class<?>[]{
-                IPacket.class,
-                IProtocolRegistration.class,
-                IFieldRegistration.class,
-                ByteBuf.class
-        };
+        var classArray = new Class<?>[]{IPacket.class, IProtocolRegistration.class, IFieldRegistration.class, ByteBuf.class};
 
         var classPool = ClassPool.getDefault();
 
         // 导入需要的包
         classPool.importPackage(IPacket.class.getCanonicalName());
         classPool.importPackage(ByteBufUtils.class.getCanonicalName());
-        classPool.importPackage(Collections.class.getCanonicalName());
         classPool.importPackage(CollectionUtils.class.getCanonicalName());
         classPool.importPackage(ArrayUtils.class.getCanonicalName());
         classPool.importPackage(Iterator.class.getCanonicalName());
         classPool.importPackage(List.class.getCanonicalName());
-        classPool.importPackage(ArrayList.class.getCanonicalName());
         classPool.importPackage(Map.class.getCanonicalName());
-        classPool.importPackage(HashMap.class.getCanonicalName());
         classPool.importPackage(Set.class.getCanonicalName());
-        classPool.importPackage(HashSet.class.getCanonicalName());
 
         // 增加类的路径
         for (var clazz : classArray) {
@@ -118,12 +109,11 @@ public abstract class EnhanceUtils {
      * @return 返回类的名称格式：EnhanceUtilsProtocolRegistration1
      */
     public static IProtocolRegistration createProtocolRegistration(ProtocolRegistration registration) throws NotFoundException, CannotCompileException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        var classPool = ClassPool.getDefault();
-
         GenerateProtocolFile.index.set(0);
 
-        short protocolId = registration.getId();
-        IFieldRegistration[] packetFields = registration.getFieldRegistrations();
+        var classPool = ClassPool.getDefault();
+        var protocolId = registration.getId();
+        var packetFields = registration.getFieldRegistrations();
 
         // 定义类名称
         CtClass enhanceClazz = classPool.makeClass(ProtocolRegistration.class.getCanonicalName() + protocolId);
@@ -198,22 +188,18 @@ public abstract class EnhanceUtils {
 
     // see: ProtocolRegistration.write()
     private static String writeMethodBody(ProtocolRegistration registration) {
-        short protocolId = registration.getId();
-        Constructor<?> constructor = registration.getConstructor();
-        Field[] fields = registration.getFields();
-        IFieldRegistration[] fieldRegistrations = registration.getFieldRegistrations();
+        var constructor = registration.getConstructor();
+        var fields = registration.getFields();
+        var fieldRegistrations = registration.getFieldRegistrations();
 
+        var packetClazz = constructor.getDeclaringClass();
 
-        Class<?> packetClazz = constructor.getDeclaringClass();
-
-        StringBuilder builder = new StringBuilder();
-        builder.append("{");
-        builder.append(packetClazz.getCanonicalName() + " packet = (" + packetClazz.getCanonicalName() + ")$2;");
-        builder.append("if(ByteBufUtils.writePacketFlag($1, packet)){")
-                .append("return;}");
-        for (int i = 0; i < fields.length; i++) {
-            Field field = fields[i];
-            IFieldRegistration fieldRegistration = fieldRegistrations[i];
+        var builder = new StringBuilder();
+        builder.append("{").append(packetClazz.getCanonicalName() + " packet = (" + packetClazz.getCanonicalName() + ")$2;");
+        builder.append("if(ByteBufUtils.writePacketFlag($1, packet)){").append("return;}");
+        for (var i = 0; i < fields.length; i++) {
+            var field = fields[i];
+            var fieldRegistration = fieldRegistrations[i];
 
             if (Modifier.isPublic(field.getModifiers())) {
                 enhanceSerializer(fieldRegistration.serializer())
@@ -223,31 +209,29 @@ public abstract class EnhanceUtils {
                         .writeObject(builder, StringUtils.format("packet.{}()", ReflectionUtils.fieldToGetMethod(packetClazz, field)), field, fieldRegistration);
             }
         }
-
-
         builder.append("}");
         return builder.toString();
     }
 
     // see: ProtocolRegistration.read()
-    private static String readMethodBody(ProtocolRegistration registration) throws NoSuchMethodException {
-        short protocolId = registration.getId();
-        Constructor<?> constructor = registration.getConstructor();
-        Field[] fields = registration.getFields();
-        IFieldRegistration[] fieldRegistrations = registration.getFieldRegistrations();
+    private static String readMethodBody(ProtocolRegistration registration) {
+        var constructor = registration.getConstructor();
+        var fields = registration.getFields();
+        var fieldRegistrations = registration.getFieldRegistrations();
 
-        StringBuilder builder = new StringBuilder();
-        builder.append("{");
-        builder.append("if(!" + EnhanceUtils.byteBufUtilsReadBoolean + "){")
-                .append("return null;}");
-        Class<?> packetClazz = constructor.getDeclaringClass();
+        var builder = new StringBuilder();
+        builder.append("{").append("if(!" + EnhanceUtils.byteBufUtilsReadBoolean + "){").append("return null;}");
+        var packetClazz = constructor.getDeclaringClass();
         builder.append(packetClazz.getCanonicalName() + " packet=new " + packetClazz.getCanonicalName() + "();");
 
-        for (int i = 0; i < fields.length; i++) {
-            Field field = fields[i];
-            IFieldRegistration fieldRegistration = fieldRegistrations[i];
-
-            String readObject = enhanceSerializer(fieldRegistration.serializer()).readObject(builder, field, fieldRegistration);
+        for (var i = 0; i < fields.length; i++) {
+            var field = fields[i];
+            var fieldRegistration = fieldRegistrations[i];
+            var readObject = enhanceSerializer(fieldRegistration.serializer()).readObject(builder, field, fieldRegistration);
+            // 协议向后兼容
+            if (field.isAnnotationPresent(Compatible.class)) {
+                builder.append("if(!$1.isReadable()){ return packet; }");
+            }
 
             if (Modifier.isPublic(field.getModifiers())) {
                 builder.append(StringUtils.format("packet.{}={};", field.getName(), readObject));
@@ -260,9 +244,7 @@ public abstract class EnhanceUtils {
         return builder.toString();
     }
 
-
     public static String getProtocolRegistrationFieldNameByProtocolId(short id) {
         return StringUtils.format("{}{}", StringUtils.uncapitalize(ProtocolRegistration.class.getSimpleName()), id);
     }
-
 }

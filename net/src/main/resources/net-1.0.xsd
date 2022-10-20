@@ -23,31 +23,31 @@
         <xsd:attribute name="password" type="xsd:string" use="required"/>
     </xsd:complexType>
 
-    <xsd:complexType name="providerAttributeType">
-        <xsd:attribute name="name" type="xsd:string" use="required"/>
-        <xsd:attribute name="url" type="xsd:string" use="required"/>
-    </xsd:complexType>
-
-    <xsd:complexType name="providerType">
+    <xsd:complexType name="providersType">
         <xsd:sequence>
-            <xsd:element name="module" maxOccurs="unbounded" type="moduleAttributeType" minOccurs="0"/>
+            <xsd:element name="provider" maxOccurs="unbounded" type="providerAttributeType" minOccurs="0"/>
         </xsd:sequence>
-        <xsd:attribute name="task-dispatch" type="xsd:string" use="required"/>
+        <xsd:attribute name="task-dispatch" type="xsd:string" default="consistent-hash"/>
         <xsd:attribute name="thread" type="xsd:string" use="optional"/>
         <xsd:attribute name="address" type="xsd:string" use="optional"/>
     </xsd:complexType>
 
-    <xsd:complexType name="consumerType">
+    <xsd:complexType name="consumersType">
         <xsd:sequence>
-            <xsd:element name="module" maxOccurs="unbounded" type="moduleAttributeType"/>
+            <xsd:element name="consumer" maxOccurs="unbounded" type="consumerAttributeType"/>
         </xsd:sequence>
-        <xsd:attribute name="load-balancer" type="xsd:string" use="required"/>
     </xsd:complexType>
 
-    <xsd:complexType name="moduleAttributeType">
-        <xsd:attribute name="name" type="xsd:string" use="required"/>
+    <xsd:complexType name="providerAttributeType">
+        <xsd:attribute name="protocol-module" type="xsd:string" use="required"/>
+        <xsd:attribute name="provider" type="xsd:string" use="required"/>
     </xsd:complexType>
 
+    <xsd:complexType name="consumerAttributeType">
+        <xsd:attribute name="protocol-module" type="xsd:string" use="required"/>
+        <xsd:attribute name="load-balancer" type="xsd:string" default="consistent-hash"/>
+        <xsd:attribute name="consumer" type="xsd:string" use="required"/>
+    </xsd:complexType>
 
     <xsd:complexType name="configType">
         <xsd:sequence>
@@ -58,19 +58,22 @@
                 <xsd:element name="monitor" type="addressType"/>
             </xsd:choice>
             <xsd:choice minOccurs="0" maxOccurs="1">
-                <xsd:element name="provider" type="providerType"/>
+                <xsd:element name="providers" type="providersType"/>
             </xsd:choice>
             <xsd:choice minOccurs="0" maxOccurs="1">
-                <xsd:element name="consumer" type="consumerType"/>
+                <xsd:element name="consumers" type="consumersType"/>
             </xsd:choice>
         </xsd:sequence>
         <xsd:attribute name="id" type="xsd:string" use="required"/>
         <xsd:attribute name="protocol-location" type="xsd:string" use="required"/>
-        <xsd:attribute name="generate-js-protocol" type="xsd:string" default="false"/>
-        <xsd:attribute name="generate-cs-protocol" type="xsd:string" default="false"/>
-        <xsd:attribute name="generate-lua-protocol" type="xsd:string" default="false"/>
-        <xsd:attribute name="generate-gd-protocol" type="xsd:string" default="false"/>
-        <xsd:attribute name="generate-protobuf-protocol" type="xsd:string" default="false"/>
+        <xsd:attribute name="javascript-protocol" type="xsd:string" default="false"/>
+        <xsd:attribute name="typescript-protocol" type="xsd:string" default="false"/>
+        <xsd:attribute name="csharp-protocol" type="xsd:string" default="false"/>
+        <xsd:attribute name="lua-protocol" type="xsd:string" default="false"/>
+        <xsd:attribute name="gdscript-protocol" type="xsd:string" default="false"/>
+        <xsd:attribute name="cpp-protocol" type="xsd:string" default="false"/>
+        <xsd:attribute name="go-protocol" type="xsd:string" default="false"/>
+        <xsd:attribute name="protobuf-protocol" type="xsd:string" default="false"/>
         <xsd:attribute name="fold-protocol" type="xsd:string" default="false"/>
         <xsd:attribute name="protocol-path" type="xsd:string"/>
         <xsd:attribute name="protocol-param" type="xsd:string"/>

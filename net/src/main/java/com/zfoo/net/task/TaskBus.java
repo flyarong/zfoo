@@ -13,26 +13,37 @@
 
 package com.zfoo.net.task;
 
+import com.zfoo.event.manager.EventBus;
 import com.zfoo.net.NetContext;
 import com.zfoo.net.task.dispatcher.AbstractTaskDispatch;
 import com.zfoo.net.task.dispatcher.ITaskDispatch;
 import com.zfoo.net.task.model.PacketReceiverTask;
+import com.zfoo.protocol.collection.concurrent.CopyOnWriteHashMapLongObject;
+import com.zfoo.protocol.util.AssertionUtils;
 import com.zfoo.protocol.util.StringUtils;
+import com.zfoo.scheduler.manager.SchedulerBus;
+import com.zfoo.util.SafeRunnable;
+import com.zfoo.util.ThreadUtils;
+import com.zfoo.util.math.RandomUtils;
+import io.netty.util.concurrent.FastThreadLocalThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Map;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * @author jaysunxiao
+ * Task线程池一半是用来接收客户都安的请求做一些cpu密集型任务，尽量避免做一些阻塞操作，IO密集型任务可以放在Event线程池去做
+ *
+ * @author godotg
  * @version 3.0
  */
 public final class TaskBus {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskBus.class);
 
-    // 线程池的大小
+    // 线程池的大小，也可以通过provider thread配置指定
     public static final int EXECUTOR_SIZE;
 
     private static final ITaskDispatch taskDispatch;
@@ -55,11 +66,37 @@ public final class TaskBus {
 
         executors = new ExecutorService[EXECUTOR_SIZE];
         for (int i = 0; i < executors.length; i++) {
-            var namedThreadFactory = new TaskThreadFactory();
-            executors[i] = Executors.newSingleThreadExecutor(namedThreadFactory);
+            var namedThreadFactory = new TaskThreadFactory(i);
+            var executor = Executors.newSingleThreadExecutor(namedThreadFactory);
+            executors[i] = executor;
         }
     }
 
+    private static final CopyOnWriteHashMapLongObject<ExecutorService> threadMap = new CopyOnWriteHashMapLongObject<>(EXECUTOR_SIZE);
+
+    public static class TaskThreadFactory implements ThreadFactory {
+        private final int poolNumber;
+        private final AtomicInteger threadNumber = new AtomicInteger(1);
+        private final ThreadGroup group;
+
+        public TaskThreadFactory(int poolNumber) {
+            this.group = ThreadUtils.currentThreadGroup();
+            this.poolNumber = poolNumber;
+        }
+
+        @Override
+        public Thread newThread(Runnable runnable) {
+            var threadName = StringUtils.format("task-p{}-t{}", poolNumber + 1, threadNumber.getAndIncrement());
+            var thread = new FastThreadLocalThread(group, runnable, threadName, 0);
+            thread.setDaemon(false);
+            thread.setPriority(Thread.NORM_PRIORITY);
+            thread.setUncaughtExceptionHandler((t, e) -> logger.error(t.toString(), e));
+            var executor = executors[poolNumber];
+            AssertionUtils.notNull(executor);
+            threadMap.put(thread.getId(), executor);
+            return thread;
+        }
+    }
 
     /**
      * Actor模型，最主要的就是线程模型，Actor模型保证了某个Actor所代表的任务永远不会同时在两条线程同时处理任务，这就就避免了并发。
@@ -80,10 +117,37 @@ public final class TaskBus {
      * SignalAttachment：executorConsistentHash通过IRouter和IConsumer的argument参数指定
      */
     public static void submit(PacketReceiverTask task) {
-        taskDispatch.getExecutor(task).execute(task);
+        // 里面会看到是：其中一致性hash是根据附加包记录的hashId进行选择哪个线程进行业务处理
+        taskDispatch.getExecutor(executors, task).execute(task);
     }
 
-    public static ExecutorService executor(int executorConsistentHash) {
-        return executors[Math.abs(executorConsistentHash % EXECUTOR_SIZE)];
+    public static int executorIndex(int executorConsistentHash) {
+        return Math.abs(executorConsistentHash % EXECUTOR_SIZE);
     }
+
+    public static void execute(int executorConsistentHash, Runnable runnable) {
+        executors[executorIndex(executorConsistentHash)].execute(SafeRunnable.valueOf(runnable));
+    }
+
+    // 在task，event，scheduler线程执行的异步请求，请求成功过后依然在相同的线程执行回调任务
+    public static Executor currentThreadExecutor() {
+        var threadId = Thread.currentThread().getId();
+        var taskExecutor = threadMap.getPrimitive(threadId);
+        if (taskExecutor != null) {
+            return taskExecutor;
+        }
+
+        var eventExecutor = EventBus.threadExecutor(threadId);
+        if (eventExecutor != null) {
+            return eventExecutor;
+        }
+
+        var schedulerExecutor = SchedulerBus.threadExecutor(threadId);
+        if (schedulerExecutor != null) {
+            return schedulerExecutor;
+        }
+
+        return executors[executorIndex(RandomUtils.randomInt())];
+    }
+
 }

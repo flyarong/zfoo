@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.lang.instrument.ClassDefinition;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public abstract class HotSwapUtils {
@@ -43,7 +43,7 @@ public abstract class HotSwapUtils {
         try {
             clazz = Class.forName(clazzName);
         } catch (ClassNotFoundException e) {
-            logger.info("无法在当前项目找到[class:{}]，所以忽略本次热更新", clazzName);
+            logger.error("无法在当前项目找到类[{}]，所以忽略本次热更新", clazzName);
             return;
         }
 
@@ -82,6 +82,7 @@ public abstract class HotSwapUtils {
             IOUtils.closeIO(byteArrayInputStream);
             if (ctClass != null) {
                 ctClass.defrost();
+                ctClass.detach();
             }
         }
     }

@@ -13,15 +13,15 @@
 
 package com.zfoo.orm.model.config;
 
-import com.zfoo.orm.model.cache.EntityCaches;
-import com.zfoo.orm.model.persister.CronOrmPersister;
-import com.zfoo.orm.model.persister.IOrmPersister;
-import com.zfoo.orm.model.persister.TimeOrmPersister;
+import com.zfoo.orm.cache.EntityCaches;
+import com.zfoo.orm.cache.persister.CronOrmPersister;
+import com.zfoo.orm.cache.persister.IOrmPersister;
+import com.zfoo.orm.cache.persister.TimeOrmPersister;
 import com.zfoo.orm.model.vo.EntityDef;
 import com.zfoo.protocol.util.StringUtils;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public enum PersisterTypeEnum {

@@ -13,6 +13,7 @@
 
 package com.zfoo.monitor;
 
+import com.zfoo.monitor.util.JvmUtils;
 import com.zfoo.monitor.util.OSUtils;
 import com.zfoo.protocol.util.JsonUtils;
 import com.zfoo.util.ThreadUtils;
@@ -22,9 +23,10 @@ import org.junit.Test;
 import oshi.SystemInfo;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
+@Ignore
 public class ApplicationTest {
 
     /**
@@ -115,6 +117,20 @@ public class ApplicationTest {
         System.out.println(monitor);
         monitor = OSUtils.maxMonitor();
         System.out.println(monitor);
+    }
+
+
+    @Test
+    public void JvmTest() {
+        JvmUtils.getJvmInfo().forEach(a -> {
+            System.out.println(a.toString());
+        });
+    }
+
+    @Test
+    public void osTest() {
+        var os = OSUtils.os();
+        System.out.println(JsonUtils.object2StringPrettyPrinter(os));
     }
 
 }

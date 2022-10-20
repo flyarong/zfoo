@@ -24,7 +24,7 @@ import com.zfoo.protocol.util.StringUtils;
 import java.lang.reflect.Field;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class EnhanceListSerializer implements IEnhanceSerializer {
@@ -67,7 +67,7 @@ public class EnhanceListSerializer implements IEnhanceSerializer {
         var size = "size" + GenerateProtocolFile.index.getAndIncrement();
         builder.append(StringUtils.format("int {}={}.readInt($1);", size, EnhanceUtils.byteBufUtils));
 
-        builder.append(StringUtils.format("List {} = CollectionUtils.newFixedList({});", list, size));
+        builder.append(StringUtils.format("List {} = CollectionUtils.newList({});", list, size));
 
         var i = "i" + GenerateProtocolFile.index.getAndIncrement();
 

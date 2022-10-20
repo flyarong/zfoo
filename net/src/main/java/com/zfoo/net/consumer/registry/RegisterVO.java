@@ -14,7 +14,9 @@
 package com.zfoo.net.consumer.registry;
 
 import com.zfoo.net.config.model.ConsumerConfig;
+import com.zfoo.net.config.model.ConsumerModule;
 import com.zfoo.net.config.model.ProviderConfig;
+import com.zfoo.net.config.model.ProviderModule;
 import com.zfoo.protocol.collection.CollectionUtils;
 import com.zfoo.protocol.exception.ExceptionUtils;
 import com.zfoo.protocol.registration.ProtocolModule;
@@ -40,17 +42,23 @@ public class RegisterVO {
     private static final String uuid = IdUtils.getUUID();
 
     private String id;
+
+    // 服务提供者配置
     private ProviderConfig providerConfig;
+    // 服务消费者配置
     private ConsumerConfig consumerConfig;
 
-
-    public static boolean providerHasConsumerModule(RegisterVO provider, RegisterVO consumer) {
-        if (Objects.isNull(provider) || Objects.isNull(provider.providerConfig) || CollectionUtils.isEmpty(provider.providerConfig.getModules())
-                || Objects.isNull(consumer) || Objects.isNull(consumer.consumerConfig) || CollectionUtils.isEmpty(consumer.consumerConfig.getModules())) {
+    public static boolean providerHasConsumer(RegisterVO providerVO, RegisterVO consumerVO) {
+        if (Objects.isNull(providerVO) || Objects.isNull(providerVO.providerConfig) || CollectionUtils.isEmpty(providerVO.providerConfig.getProviders())
+                || Objects.isNull(consumerVO) || Objects.isNull(consumerVO.consumerConfig) || CollectionUtils.isEmpty(consumerVO.consumerConfig.getConsumers())) {
             return false;
         }
-
-        return provider.getProviderConfig().getModules().stream().anyMatch(it -> consumer.getConsumerConfig().getModules().contains(it));
+        for (var provider : providerVO.getProviderConfig().getProviders()) {
+            if (consumerVO.getConsumerConfig().getConsumers().stream().anyMatch(it -> it.matchProvider(provider))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static RegisterVO valueOf(String id, ProviderConfig providerConfig, ConsumerConfig consumerConfig) {
@@ -71,13 +79,13 @@ public class RegisterVO {
 
             String providerAddress = null;
 
-            for (int i = 1; i < splits.length; i++) {
+            for (var i = 1; i < splits.length; i++) {
                 var s = splits[i].trim();
                 if (s.startsWith("provider")) {
-                    var providerModules = parseModules(s);
+                    var providerModules = parseProviderModules(s);
                     vo.providerConfig = ProviderConfig.valueOf(providerAddress, providerModules);
                 } else if (s.startsWith("consumer")) {
-                    var consumerModules = parseModules(s);
+                    var consumerModules = parseConsumerModules(s);
                     vo.consumerConfig = ConsumerConfig.valueOf(consumerModules);
                 } else {
                     providerAddress = s;
@@ -91,7 +99,8 @@ public class RegisterVO {
         }
     }
 
-    private static List<ProtocolModule> parseModules(String str) {
+
+    private static List<ProviderModule> parseProviderModules(String str) {
         var moduleSplits = StringUtils.substringBeforeLast(
                 StringUtils.substringAfterFirst(str, StringUtils.LEFT_SQUARE_BRACKET)
                 , StringUtils.RIGHT_SQUARE_BRACKET).split(StringUtils.COMMA);
@@ -99,7 +108,20 @@ public class RegisterVO {
         var modules = Arrays.stream(moduleSplits)
                 .map(it -> it.trim())
                 .map(it -> it.split(StringUtils.HYPHEN))
-                .map(it -> new ProtocolModule(Byte.parseByte(it[0]), it[1], it[2]))
+                .map(it -> new ProviderModule(new ProtocolModule(Byte.parseByte(it[0]), it[1]), it[2]))
+                .collect(Collectors.toList());
+        return modules;
+    }
+
+    private static List<ConsumerModule> parseConsumerModules(String str) {
+        var moduleSplits = StringUtils.substringBeforeLast(
+                StringUtils.substringAfterFirst(str, StringUtils.LEFT_SQUARE_BRACKET)
+                , StringUtils.RIGHT_SQUARE_BRACKET).split(StringUtils.COMMA);
+
+        var modules = Arrays.stream(moduleSplits)
+                .map(it -> it.trim())
+                .map(it -> it.split(StringUtils.HYPHEN))
+                .map(it -> new ConsumerModule(new ProtocolModule(Byte.parseByte(it[0]), it[1]), it[2], it[3]))
                 .collect(Collectors.toList());
         return modules;
     }
@@ -109,7 +131,7 @@ public class RegisterVO {
     }
 
     public String toConsumerString() {
-        return toString() +
+        return this +
                 StringUtils.SPACE + StringUtils.VERTICAL_BAR + StringUtils.SPACE +
                 uuid;
     }
@@ -117,30 +139,39 @@ public class RegisterVO {
     @Override
     public String toString() {
         var builder = new StringBuilder();
+
+        // 模块模块名
         builder.append(id);
 
+        // 服务提供者相关配置信息
         if (Objects.nonNull(providerConfig)) {
             var providerAddress = providerConfig.getAddress();
             if (StringUtils.isBlank(providerAddress)) {
                 throw new RuntimeException(StringUtils.format("providerConfig的address不能为空"));
             }
             builder.append(StringUtils.SPACE).append(StringUtils.VERTICAL_BAR).append(StringUtils.SPACE);
+            // 服务提供者地址
             builder.append(providerAddress);
 
             builder.append(StringUtils.SPACE).append(StringUtils.VERTICAL_BAR).append(StringUtils.SPACE);
-            var providerModules = providerConfig.getModules().stream()
-                    .map(it -> StringUtils.joinWith(StringUtils.HYPHEN, it.getId(), it.getName(), ProtocolModule.versionNumToStr(it.getVersion())))
+            var providerModules = providerConfig.getProviders().stream()
+                    .map(it -> StringUtils.joinWith(StringUtils.HYPHEN, it.getProtocolModule().getId(), it.getProtocolModule().getName(), it.getProvider()))
                     .collect(Collectors.toList());
+
+            // 服务提供者模块信息列表
             builder.append(StringUtils.format("provider:[{}]"
                     , StringUtils.joinWith(StringUtils.COMMA + StringUtils.SPACE, providerModules.toArray())));
         }
 
+        // 服务消费者相关信息
         if (Objects.nonNull(consumerConfig)) {
             builder.append(StringUtils.SPACE).append(StringUtils.VERTICAL_BAR).append(StringUtils.SPACE);
 
-            var consumerModules = consumerConfig.getModules().stream()
-                    .map(it -> StringUtils.joinWith(StringUtils.HYPHEN, it.getId(), it.getName(), ProtocolModule.versionNumToStr(it.getVersion())))
+            var consumerModules = consumerConfig.getConsumers().stream()
+                    .map(it -> StringUtils.joinWith(StringUtils.HYPHEN, it.getProtocolModule().getId(), it.getProtocolModule().getName(), it.getLoadBalancer(), it.getConsumer()))
                     .collect(Collectors.toList());
+
+            // 服务消费者模块信息列表
             builder.append(StringUtils.format("consumer:[{}]"
                     , StringUtils.joinWith(StringUtils.COMMA + StringUtils.SPACE, consumerModules.toArray())));
         }

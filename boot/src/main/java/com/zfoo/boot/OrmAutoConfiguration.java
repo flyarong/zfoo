@@ -14,22 +14,23 @@ package com.zfoo.boot;
 
 import com.zfoo.orm.OrmContext;
 import com.zfoo.orm.manager.OrmManager;
-import com.zfoo.orm.model.accessor.MongodbAccessor;
+import com.zfoo.orm.accessor.MongodbAccessor;
 import com.zfoo.orm.model.config.OrmConfig;
-import com.zfoo.orm.model.query.MongodbQuery;
+import com.zfoo.orm.query.MongodbQuery;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnBean(OrmConfig.class)
 public class OrmAutoConfiguration {
 
+    // OrmConfig的装配在于具体的业务游戏中，业务游戏中不配置OrmConfig这个Bean，那么这里的Orm自动装配也不会生效。
     @Bean
     @ConditionalOnBean(OrmConfig.class)
     public OrmManager ormManager(OrmConfig ormConfig) {

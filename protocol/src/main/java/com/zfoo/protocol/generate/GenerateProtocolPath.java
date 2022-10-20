@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 /**
  * 生成协议的时候，协议的最终生成路径会使用这个类
  *
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public abstract class GenerateProtocolPath {
@@ -51,6 +51,32 @@ public abstract class GenerateProtocolPath {
         }
 
         return protocolPath.replaceAll(StringUtils.PERIOD_REGEX, StringUtils.SLASH);
+    }
+
+    public static String getRelativePath(short protocolId, short relativeProtocolId) {
+        // 不是折叠协议的话，protocolPathMap一定是空，这里返回“”，上层会解析为同一个文件下
+        if(CollectionUtils.isEmpty(protocolPathMap)){
+            return StringUtils.EMPTY;
+        }
+        var protocolPath = protocolPathMap.get(protocolId);
+        var relativePath = protocolPathMap.get(relativeProtocolId);
+        if (relativePath.startsWith(protocolPath)) {
+            return StringUtils.format(".{}", StringUtils.substringAfterFirst(relativePath, protocolPath).replaceAll(StringUtils.PERIOD_REGEX, StringUtils.SLASH));
+        }
+
+        var splits = protocolPath.split(StringUtils.PERIOD_REGEX);
+        var builder = new StringBuilder();
+
+        for (var i = splits.length; i > 0; i--) {
+            builder.append("../");
+            var path = StringUtils.joinWith(StringUtils.PERIOD, Arrays.stream(splits).limit(i).collect(Collectors.toList()).toArray());
+            if (relativePath.startsWith(path)) {
+                builder.append(StringUtils.substringAfterFirst(relativePath, path).replaceAll(StringUtils.PERIOD_REGEX, StringUtils.SLASH));
+                return builder.toString();
+            }
+        }
+        builder.append(relativePath.replaceAll(StringUtils.PERIOD_REGEX, StringUtils.SLASH));
+        return builder.toString();
     }
 
     /**

@@ -34,7 +34,7 @@ import java.lang.reflect.Modifier;
 import java.util.concurrent.ScheduledExecutorService;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class SchedulerContext implements ApplicationListener<ApplicationContextEvent>, Ordered {
@@ -80,8 +80,7 @@ public class SchedulerContext implements ApplicationListener<ApplicationContextE
 
         logger.info("Scheduler shutdown gracefully.");
     }
-
-
+    
     @Override
     public void onApplicationEvent(ApplicationContextEvent event) {
         if (event instanceof ContextRefreshedEvent) {
@@ -89,7 +88,9 @@ public class SchedulerContext implements ApplicationListener<ApplicationContextE
             SchedulerContext.instance = this;
             instance.applicationContext = event.getApplicationContext();
             inject();
+            // 启动位于SchedulerBus的static静态代码块中
         } else if (event instanceof ContextClosedEvent) {
+            // 反射获取executor,关闭掉
             shutdown();
         }
     }

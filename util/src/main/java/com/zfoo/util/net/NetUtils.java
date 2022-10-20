@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 /**
  * 网络相关工具
  *
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class NetUtils {
@@ -114,9 +114,11 @@ public class NetUtils {
             // 给定的IP未在指定端口范围中
             return false;
         }
-        try (ServerSocket ss = new ServerSocket(port)) {
+
+        // try-with-resources会自动调用close方法
+        try (ServerSocket ss = new ServerSocket(port, 0, getLocalhost())) {
             return true;
-        } catch (IOException e) {
+        } catch (Exception e) {
             return false;
         }
     }

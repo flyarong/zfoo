@@ -13,6 +13,7 @@
 package com.zfoo.protocol;
 
 import com.zfoo.protocol.buffer.ByteBufUtils;
+import com.zfoo.protocol.collection.HashMapIntShort;
 import com.zfoo.protocol.generate.GenerateOperation;
 import com.zfoo.protocol.registration.IProtocolRegistration;
 import com.zfoo.protocol.registration.ProtocolAnalysis;
@@ -21,25 +22,33 @@ import com.zfoo.protocol.util.AssertionUtils;
 import com.zfoo.protocol.xml.XmlProtocols;
 import io.netty.buffer.ByteBuf;
 
-import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class ProtocolManager {
 
     public static final String PROTOCOL_ID = "PROTOCOL_ID";
+    public static final String PROTOCOL_METHOD = "protocolId";
     public static final short MAX_PROTOCOL_NUM = Short.MAX_VALUE;
     public static final byte MAX_MODULE_NUM = Byte.MAX_VALUE;
-    public static final Comparator<Field> PACKET_FIELD_COMPARATOR = (a, b) -> a.getName().compareTo(b.getName());
 
+    /**
+     * 索引：协议号protocolId
+     */
     public static final IProtocolRegistration[] protocols = new IProtocolRegistration[MAX_PROTOCOL_NUM];
+    /**
+     * 索引：模块号
+     */
     public static final ProtocolModule[] modules = new ProtocolModule[MAX_MODULE_NUM];
+
+    /**
+     * key:协议class，value:protocolId，如果所有协议Class返回的hashcode都不相同（大概率事件），则使用高性能的HashMapIntShort
+     */
+    public static Map<Class<?>, Short> protocolIdMap = new HashMap<>();
+    public static HashMapIntShort protocolIdPrimitiveMap = new HashMapIntShort();
 
     static {
         // 初始化默认协议模块
@@ -62,24 +71,28 @@ public class ProtocolManager {
     }
 
     public static IProtocolRegistration getProtocol(short protocolId) {
-        var protocol = protocols[protocolId];
-        AssertionUtils.notNull(protocol, "[protocolId:{}]协议不存在，可能没有注册该协议或者协议号错误", protocolId);
-        return protocol;
+        return protocols[protocolId];
     }
 
     public static ProtocolModule moduleByProtocolId(short id) {
         return modules[protocols[id].module()];
     }
 
+    /**
+     * 根据模块id查找模块
+     */
     public static ProtocolModule moduleByModuleId(byte moduleId) {
         var module = modules[moduleId];
         AssertionUtils.notNull(module, "[moduleId:{}]不存在", moduleId);
         return module;
     }
 
+    /**
+     * 根据模块名字查找模块
+     */
     public static ProtocolModule moduleByModuleName(String name) {
         var moduleOptional = Arrays.stream(modules)
-                .filter(it -> Objects.nonNull(it))
+                .filter(Objects::nonNull)
                 .filter(it -> it.getName().equals(name))
                 .findFirst();
         if (moduleOptional.isEmpty()) {
@@ -88,16 +101,26 @@ public class ProtocolManager {
         return moduleOptional.get();
     }
 
+    public static short protocolId(Class<?> clazz) {
+        return protocolIdMap == null ? protocolIdPrimitiveMap.getPrimitive(clazz.hashCode()) : protocolIdMap.get(clazz);
+    }
+
     public static void initProtocol(Set<Class<?>> protocolClassSet) {
         ProtocolAnalysis.analyze(protocolClassSet, GenerateOperation.NO_OPERATION);
     }
 
+    /**
+     * 注册协议：将协议id和对应的协议信息关联起来
+     *
+     * @param protocolClassSet  需要初始化的协议列表
+     * @param generateOperation 协议配置：需要生成哪些语言的协议文件 是否折叠等信息
+     */
     public static void initProtocol(Set<Class<?>> protocolClassSet, GenerateOperation generateOperation) {
-        ProtocolAnalysis.analyze(protocolClassSet,  generateOperation);
+        ProtocolAnalysis.analyze(protocolClassSet, generateOperation);
     }
 
     public static void initProtocol(XmlProtocols xmlProtocols, GenerateOperation generateOperation) {
-        ProtocolAnalysis.analyze(xmlProtocols,  generateOperation);
+        ProtocolAnalysis.analyze(xmlProtocols, generateOperation);
     }
 
 }

@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 @Ignore
@@ -76,7 +76,7 @@ public class JProtobufTest {
         var op = GenerateOperation.NO_OPERATION;
         op.getGenerateLanguages().add(CodeLanguage.Protobuf);
         op.setFoldProtocol(true);
-        op.setProtocolParam("protobuf=protobufTest/protobuf.xml");
+        op.setProtocolParam("protobuf=protobuf.xml");
 
         ProtocolManager.initProtocol(Set.of(ObjectA.class, ObjectB.class, ObjectC.class), op);
     }

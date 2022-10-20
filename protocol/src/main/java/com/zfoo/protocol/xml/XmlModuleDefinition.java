@@ -20,10 +20,10 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import java.util.List;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
-@JsonPropertyOrder({"id", "name", "minId", "maxId", "version"})
+@JsonPropertyOrder({"id", "name", "minId", "maxId"})
 public class XmlModuleDefinition {
 
     @JacksonXmlProperty(isAttribute = true, localName = "id")
@@ -37,9 +37,6 @@ public class XmlModuleDefinition {
 
     @JacksonXmlProperty(isAttribute = true, localName = "maxId")
     private short maxId;
-
-    @JacksonXmlProperty(isAttribute = true, localName = "version")
-    private String version;
 
     @JacksonXmlProperty(localName = "protocol")
     @JacksonXmlElementWrapper(useWrapping = false)
@@ -59,10 +56,6 @@ public class XmlModuleDefinition {
 
     public short getMaxId() {
         return maxId;
-    }
-
-    public String getVersion() {
-        return version;
     }
 
     public List<XmlProtocolDefinition> getProtocols() {

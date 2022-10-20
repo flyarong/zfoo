@@ -20,9 +20,9 @@ import com.mongodb.client.*;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import com.zfoo.orm.OrmContext;
+import com.zfoo.orm.cache.EntityCaches;
+import com.zfoo.orm.cache.IEntityCaches;
 import com.zfoo.orm.model.anno.*;
-import com.zfoo.orm.model.cache.EntityCaches;
-import com.zfoo.orm.model.cache.IEntityCaches;
 import com.zfoo.orm.model.config.OrmConfig;
 import com.zfoo.orm.model.entity.IEntity;
 import com.zfoo.orm.model.vo.EntityDef;
@@ -54,11 +54,12 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class OrmManager implements IOrmManager {
@@ -143,6 +144,11 @@ public class OrmManager implements IOrmManager {
                     if (!hasIndex) {
                         var indexOptions = new IndexOptions();
                         indexOptions.unique(index.isUnique());
+
+                        if (index.getTtlExpireAfterSeconds() > 0) {
+                            indexOptions.expireAfter(index.getTtlExpireAfterSeconds(), TimeUnit.SECONDS);
+                        }
+
                         if (index.isAscending()) {
                             collection.createIndex(Indexes.ascending(fieldName), indexOptions);
                         } else {
@@ -305,9 +311,10 @@ public class OrmManager implements IOrmManager {
         var cacheStrategies = ormConfig.getCaches();
         var persisterStrategies = ormConfig.getPersisters();
 
-        var cache = clazz.getAnnotation(EntityCache.class);
-        var cacheStrategyOptional = cacheStrategies.stream().filter(it -> it.getStrategy().equals(cache.cacheStrategy())).findFirst();
-        AssertionUtils.isTrue(cacheStrategyOptional.isPresent(), "实体类Entity[{}]没有找到缓存策略[{}]", clazz.getSimpleName(), cache.cacheStrategy());
+        var entityCache = clazz.getAnnotation(EntityCache.class);
+        var cache = entityCache.cache();
+        var cacheStrategyOptional = cacheStrategies.stream().filter(it -> it.getStrategy().equals(cache.value())).findFirst();
+        AssertionUtils.isTrue(cacheStrategyOptional.isPresent(), "实体类Entity[{}]没有找到缓存策略[{}]", clazz.getSimpleName(), cache.value());
 
         var cacheStrategy = cacheStrategyOptional.get();
         var cacheSize = cacheStrategy.getSize();
@@ -316,16 +323,24 @@ public class OrmManager implements IOrmManager {
         var idField = ReflectionUtils.getFieldsByAnnoInPOJOClass(clazz, Id.class)[0];
         ReflectionUtils.makeAccessible(idField);
 
-        var persister = cache.persister();
+        var persister = entityCache.persister();
         var persisterStrategyOptional = persisterStrategies.stream().filter(it -> it.getStrategy().equals(persister.value())).findFirst();
-        AssertionUtils.isTrue(persisterStrategyOptional.isPresent(), "实体类Entity[{}]没有找到持久化策略[{}]", clazz.getSimpleName(), persister);
+        AssertionUtils.isTrue(persisterStrategyOptional.isPresent(), "实体类Entity[{}]没有找到持久化策略[{}]", clazz.getSimpleName(), persister.value());
 
         var persisterStrategy = persisterStrategyOptional.get();
         var indexDefMap = new HashMap<String, IndexDef>();
         var fields = ReflectionUtils.getFieldsByAnnoInPOJOClass(clazz, Index.class);
         for (var field : fields) {
             var indexAnnotation = field.getAnnotation(Index.class);
-            IndexDef indexDef = new IndexDef(field, indexAnnotation.ascending(), indexAnnotation.unique());
+
+            if (indexAnnotation.ttlExpireAfterSeconds() > 0) {
+                var fieldType = field.getGenericType();
+                if (!(fieldType == Date.class || field.getGenericType().toString().equals("java.util.List<java.util.Date>"))) {
+                    throw new IllegalArgumentException(StringUtils.format("MongoDB规定TTL类型[{}]必须是Date，List<Date>的其中一种类型", field.getName()));
+                }
+            }
+
+            IndexDef indexDef = new IndexDef(field, indexAnnotation.ascending(), indexAnnotation.unique(), indexAnnotation.ttlExpireAfterSeconds());
             indexDefMap.put(field.getName(), indexDef);
         }
 
@@ -439,7 +454,7 @@ public class OrmManager implements IOrmManager {
     }
 
     private void checkEntity(Class<?> clazz) {
-        // 是否为一个简单的javabean
+        // 是否为一个简单的javabean，为了防止不同层对象混用造成潜在的并发问题，特别是网络层和po层混用
         ReflectionUtils.assertIsPojoClass(clazz);
         // 不能是泛型类
         AssertionUtils.isTrue(ArrayUtils.isEmpty(clazz.getTypeParameters()), "[class:{}]不能是泛型类", clazz.getCanonicalName());
@@ -511,8 +526,8 @@ public class OrmManager implements IOrmManager {
                 var keyType = types[0];
                 var valueType = types[1];
 
-                if (!isBaseType((Class<?>) keyType)) {
-                    throw new RunException("ORM[class:{}]类型声明不正确，Map的key类型必须为基础类型", clazz.getCanonicalName());
+                if (!String.class.isAssignableFrom((Class<?>) keyType)) {
+                    throw new RunException("ORM[class:{}]类型声明不正确，Map的key类型必须为String类型", clazz.getCanonicalName());
                 }
 
                 checkSubEntity(clazz, valueType);
@@ -537,7 +552,14 @@ public class OrmManager implements IOrmManager {
                 return;
             } else if (Map.class.equals(clazz)) {
                 // Map<List<String>, List<String>>
-                throw new RunException("ORM不支持Map类型");
+                var types = ((ParameterizedType) type).getActualTypeArguments();
+                var keyType = types[0];
+                var valueType = types[1];
+                if (!String.class.isAssignableFrom((Class<?>) keyType)) {
+                    throw new RunException("ORM中Map的key必须是String类型");
+                }
+                checkSubEntity(currentEntityClass, valueType);
+                return;
             }
         } else if (type instanceof Class) {
             Class<?> clazz = ((Class<?>) type);

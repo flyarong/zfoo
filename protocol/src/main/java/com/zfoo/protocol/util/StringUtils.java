@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 /**
  * Operations on {@link String} that are null safe and thread safe.
  *
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public abstract class StringUtils {
@@ -33,6 +33,7 @@ public abstract class StringUtils {
     public static final String[] EMPTY_ARRAY = new String[0];
 
     public static final String SPACE = " ";
+    public static final String SPACE_REGEX = "\\s+";
 
     public static final String TAB = "    ";
     public static final String TAB_ASCII = "\t";
@@ -178,7 +179,7 @@ public abstract class StringUtils {
     }
 
     public static String trim(String str) {
-        if (StringUtils.isBlank(str)) {
+        if (isEmpty(str)) {
             return EMPTY;
         }
         return str.trim();

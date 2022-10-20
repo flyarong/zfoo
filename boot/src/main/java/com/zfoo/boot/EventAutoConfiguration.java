@@ -20,7 +20,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 /**
- * @author jaysunxiao
+ * 通过@Import注解先注册下EventRegisterProcessor对象，当每个bean对象被注入到IOC容器后，都会经过EventRegisterProcessor这个后置处理器，
+ * 从而在里面扫描每个bean对象，得到带有@EventReceiver注解的方法
+ *
+ * @author godotg
  * @version 3.0
  */
 @Configuration(proxyBeanMethods = false)

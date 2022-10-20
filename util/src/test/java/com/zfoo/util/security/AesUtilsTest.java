@@ -16,16 +16,18 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class AesUtilsTest {
 
     @Test
     public void test() {
-        String passWord = "hello world";
-        String encodePassWorld = AesUtils.getEncryptString(passWord);
-        Assert.assertEquals(passWord, AesUtils.getDecryptString(encodePassWorld));
+        for (int i = 0; i < 10; i++) {
+            var passWord = "hello world";
+            var encodePassWorld = AesUtils.getEncryptString(passWord);
+            Assert.assertEquals(passWord, AesUtils.getDecryptString(encodePassWorld));
+        }
     }
 
 }
