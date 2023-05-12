@@ -15,12 +15,12 @@ package com.zfoo.net.packet.tcp;
 import com.zfoo.protocol.IPacket;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class SyncMessAsk implements IPacket {
 
-    public static final transient short PROTOCOL_ID = 1150;
+    public static final short PROTOCOL_ID = 1150;
 
     private String message;
 

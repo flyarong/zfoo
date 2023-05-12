@@ -23,7 +23,7 @@ import java.util.Map;
  * 支持读取配置文件的类型后缀
  *
  * @author godotg
- * @version 4.0
+ * @version 3.0
  */
 public enum ResourceEnum {
 
@@ -42,7 +42,7 @@ public enum ResourceEnum {
     static {
         for (var resourceEnum : ResourceEnum.values()) {
             var previousValue = typeMap.putIfAbsent(resourceEnum.type, resourceEnum);
-            AssertionUtils.isNull(previousValue, "ResourceEnum中不应该含有重复type的枚举类[{}]和[{}]", resourceEnum, previousValue);
+            AssertionUtils.isNull(previousValue, "ResourceEnum should not contain enumeration classes [{}] and [{}] of repeated type", resourceEnum, previousValue);
         }
     }
 

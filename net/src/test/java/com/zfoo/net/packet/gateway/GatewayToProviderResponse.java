@@ -16,12 +16,12 @@ package com.zfoo.net.packet.gateway;
 import com.zfoo.protocol.IPacket;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class GatewayToProviderResponse implements IPacket {
 
-    public static final transient short PROTOCOL_ID = 5001;
+    public static final short PROTOCOL_ID = 5001;
 
     private String message;
 

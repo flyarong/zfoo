@@ -20,12 +20,12 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class CM_CSharpRequest implements IPacket {
 
-    public static final transient short PROTOCOL_ID = 1165;
+    public static final short PROTOCOL_ID = 1165;
 
     // 注释1
     public byte a;

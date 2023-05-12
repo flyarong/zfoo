@@ -48,7 +48,7 @@ public class EventRegisterProcessor implements BeanPostProcessor {
         }
 
         if (!ReflectionUtils.isPojoClass(clazz)) {
-            logger.warn("事件注册类[{}]不是POJO类，父类的事件接收不会被扫描到", clazz);
+            logger.warn("The message registration class [{}] is not a POJO class, and the parent class will not be scanned", clazz);
         }
 
         try {
@@ -79,7 +79,8 @@ public class EventRegisterProcessor implements BeanPostProcessor {
                             , bean.getClass().getName(), methodName, eventName, expectedMethodName));
                 }
 
-                var receiverDefinition = new EventReceiverDefinition(bean, method, eventClazz);
+                var bus = method.getDeclaredAnnotation(EventReceiver.class).value();
+                var receiverDefinition = new EventReceiverDefinition(bean, method, bus, eventClazz);
                 var enhanceReceiverDefinition = EnhanceUtils.createEventReceiver(receiverDefinition);
 
                 // key:class类型 value:观察者 注册Event的receiverMap中

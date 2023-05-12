@@ -14,12 +14,12 @@
 package com.zfoo.net.schema;
 
 import com.zfoo.net.NetContext;
-import com.zfoo.net.config.manager.ConfigManager;
+import com.zfoo.net.config.ConfigManager;
 import com.zfoo.net.config.model.*;
 import com.zfoo.net.consumer.Consumer;
-import com.zfoo.net.packet.service.PacketService;
+import com.zfoo.net.packet.PacketService;
 import com.zfoo.net.router.Router;
-import com.zfoo.net.session.manager.SessionManager;
+import com.zfoo.net.session.SessionManager;
 import com.zfoo.protocol.util.DomUtils;
 import com.zfoo.protocol.util.StringUtils;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
@@ -32,7 +32,7 @@ import org.springframework.beans.factory.xml.ParserContext;
 import org.w3c.dom.Element;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class NetDefinitionParser implements BeanDefinitionParser {
@@ -179,7 +179,6 @@ public class NetDefinitionParser implements BeanDefinitionParser {
         var clazz = ProviderConfig.class;
         var builder = BeanDefinitionBuilder.rootBeanDefinition(clazz);
 
-        resolvePlaceholder("task-dispatch", "taskDispatch", builder, element, parserContext);
         resolvePlaceholder("thread", "thread", builder, element, parserContext);
         resolvePlaceholder("address", "address", builder, element, parserContext);
 

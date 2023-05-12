@@ -21,17 +21,12 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class ProviderConfig {
 
-    public static transient final int DEFAULT_PORT = 12400;
-
-    /**
-     * 对应于ITaskDispatch
-     */
-    private String taskDispatch;
+    public static final int DEFAULT_PORT = 12400;
 
     private String thread;
 
@@ -53,14 +48,6 @@ public class ProviderConfig {
             return defaultHostAndPort;
         }
         return HostAndPort.valueOf(address);
-    }
-
-    public String getTaskDispatch() {
-        return taskDispatch;
-    }
-
-    public void setTaskDispatch(String taskDispatch) {
-        this.taskDispatch = taskDispatch;
     }
 
     public String getThread() {

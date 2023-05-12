@@ -13,6 +13,7 @@
 
 package com.zfoo.storage;
 
+import com.zfoo.protocol.util.AssertionUtils;
 import com.zfoo.protocol.util.JsonUtils;
 import com.zfoo.protocol.util.StringUtils;
 import com.zfoo.storage.resource.StudentResource;
@@ -26,7 +27,7 @@ import java.util.Map;
 
 /**
  * @author godotg
- * @version 4.0
+ * @version 3.0
  */
 
 @Ignore
@@ -48,8 +49,7 @@ public class ApplicationTest {
         var studentManager = context.getBean(StudentManager.class);
         var studentResources = studentManager.studentResources;
         var studentCsvResources = studentManager.studentCsvResources;
-        // 类名称和Excel名称必须完全一致，Excel的列名称必须对应对象的属性名称
-        // 类名称和Excel名称必须完全一致，Excel的列名称必须对应对象的属性名称
+        // @Resource注解没指定别名，类名称和Excel名称必须完全一致，没有使用@ExcelFieldName对象属性名会自动对应同名的资源文件列名
         for (StudentResource resource : studentResources.getAll()) {
             logger.info(JsonUtils.object2String(resource));
         }
@@ -74,7 +74,7 @@ public class ApplicationTest {
         var testResources = testManager.testResources;
         for (com.zfoo.storage.resource.TestResource resource : testResources.getAll()) {
             Map<Integer, String> map = resource.getType9();
-            System.err.println(map.get(1));
+            AssertionUtils.notNull(map.get(1));
             logger.info(JsonUtils.object2String(resource));
         }
         // 通过id找到对应的行

@@ -15,21 +15,20 @@ package com.zfoo.net.consumer.balancer;
 
 import com.zfoo.net.NetContext;
 import com.zfoo.net.consumer.registry.RegisterVO;
-import com.zfoo.net.session.model.AttributeType;
-import com.zfoo.net.session.model.Session;
+import com.zfoo.net.session.Session;
 import com.zfoo.protocol.IPacket;
 import com.zfoo.protocol.ProtocolManager;
-import com.zfoo.protocol.model.Pair;
 import com.zfoo.protocol.registration.ProtocolModule;
 import com.zfoo.protocol.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public abstract class AbstractConsumerLoadBalancer implements IConsumerLoadBalancer {
@@ -43,11 +42,8 @@ public abstract class AbstractConsumerLoadBalancer implements IConsumerLoadBalan
             case "consistent-hash":
                 balancer = ConsistentHashConsumerLoadBalancer.getInstance();
                 break;
-            case "shortest-time":
-                balancer = ShortestTimeConsumerLoadBalancer.getInstance();
-                break;
             default:
-                throw new RuntimeException(StringUtils.format("无法识别负载均衡器[{}]", loadBalancer));
+                throw new RuntimeException(StringUtils.format("Load balancer is not recognized[{}]", loadBalancer));
         }
         return balancer;
     }
@@ -57,52 +53,29 @@ public abstract class AbstractConsumerLoadBalancer implements IConsumerLoadBalan
     }
 
     public List<Session> getSessionsByModule(ProtocolModule module) {
-        var clientSessionMap = NetContext.getSessionManager().getClientSessionMap();
-        var sessions = clientSessionMap.values().stream()
-                .filter(it -> {
-                    var attribute = it.getAttribute(AttributeType.CONSUMER);
-                    if (Objects.nonNull(attribute)) {
-                        var registerVO = (RegisterVO) attribute;
-                        return Objects.nonNull(registerVO.getProviderConfig()) && registerVO.getProviderConfig().getProviders().stream().anyMatch(provider -> provider.getProtocolModule().equals(module));
-                    } else {
-                        return false;
-                    }
-                })
-                .collect(Collectors.toList());
-        return sessions;
+        var list = new ArrayList<Session>();
+        NetContext.getSessionManager().forEachClientSession(new Consumer<Session>() {
+            @Override
+            public void accept(Session session) {
+                if (session.getConsumerAttribute() == null || session.getConsumerAttribute().getProviderConfig() == null) {
+                    return;
+                }
+                var providerConfig = session.getConsumerAttribute().getProviderConfig();
+                if (providerConfig.getProviders().stream().anyMatch(it -> it.getProtocolModule().equals(module))) {
+                    list.add(session);
+                }
+            }
+        });
+        return list;
     }
-
-    public List<Session> sessionsByModule(ProtocolModule module) {
-        var clientSessionMap = NetContext.getSessionManager().getClientSessionMap();
-        var sessions = new ArrayList<Session>();
-        for(var clientSession : clientSessionMap.values()) {
-            var attribute = clientSession.getAttribute(AttributeType.CONSUMER);
-            if (attribute == null) {
-                continue;
-            }
-
-            var registerVO = (RegisterVO) attribute;
-            var providerConfig = registerVO.getProviderConfig();
-            if (providerConfig == null) {
-                continue;
-            }
-
-            if (providerConfig.getProviders().stream().anyMatch(it -> it.getProtocolModule().getId() == module.getId())) {
-                sessions.add(clientSession);
-            }
-        }
-        return sessions;
-    }
-
 
     public boolean sessionHasModule(Session session, IPacket packet) {
-
-        var attribute = session.getAttribute(AttributeType.CONSUMER);
-        if (Objects.isNull(attribute)) {
+        var consumerAttribute = session.getConsumerAttribute();
+        if (Objects.isNull(consumerAttribute)) {
             return false;
         }
 
-        var registerVO = (RegisterVO) attribute;
+        var registerVO = (RegisterVO) consumerAttribute;
         if (Objects.isNull(registerVO.getProviderConfig())) {
             return false;
         }

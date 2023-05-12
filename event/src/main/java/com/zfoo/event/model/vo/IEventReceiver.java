@@ -13,6 +13,7 @@
 
 package com.zfoo.event.model.vo;
 
+import com.zfoo.event.model.anno.Bus;
 import com.zfoo.event.model.event.IEvent;
 
 /**
@@ -20,7 +21,7 @@ import com.zfoo.event.model.event.IEvent;
  * @version 3.0
  */
 public interface IEventReceiver {
+    Bus bus();
 
     void invoke(IEvent event);
-
 }

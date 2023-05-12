@@ -18,36 +18,24 @@ import com.zfoo.net.handler.ClientRouteHandler;
 import com.zfoo.net.handler.codec.jprotobuf.JProtobufTcpCodecHandler;
 import com.zfoo.net.handler.idle.ClientIdleHandler;
 import com.zfoo.util.net.HostAndPort;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
-public class JProtobufTcpClient extends AbstractClient {
+public class JProtobufTcpClient extends AbstractClient<SocketChannel> {
 
     public JProtobufTcpClient(HostAndPort host) {
         super(host);
     }
 
     @Override
-    public ChannelInitializer<? extends Channel> channelChannelInitializer() {
-        return new ChannelHandlerInitializer();
+    protected void initChannel(SocketChannel channel) {
+        channel.pipeline().addLast(new IdleStateHandler(0, 0, 60));
+        channel.pipeline().addLast(new ClientIdleHandler());
+        channel.pipeline().addLast(new JProtobufTcpCodecHandler());
+        channel.pipeline().addLast(new ClientRouteHandler());
     }
-
-
-    private static class ChannelHandlerInitializer extends ChannelInitializer<SocketChannel> {
-        @Override
-        protected void initChannel(SocketChannel channel) {
-            channel.pipeline().addLast(new IdleStateHandler(0, 0, 60));
-            channel.pipeline().addLast(new ClientIdleHandler());
-            channel.pipeline().addLast(new JProtobufTcpCodecHandler());
-            channel.pipeline().addLast(new ClientRouteHandler());
-        }
-    }
-
-
 }

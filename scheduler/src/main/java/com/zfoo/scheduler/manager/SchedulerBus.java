@@ -55,7 +55,6 @@ public abstract class SchedulerBus {
     private static long lastTriggerTimestamp = 0L;
 
 
-    public static final long TRIGGER_MILLIS_INTERVAL = TimeUtils.MILLIS_PER_SECOND;
     /**
      * 在scheduler中，最小的triggerTimestamp
      */
@@ -68,7 +67,7 @@ public abstract class SchedulerBus {
             } catch (Exception e) {
                 logger.error("scheduler triggers an error.", e);
             }
-        }, 0, TRIGGER_MILLIS_INTERVAL, TimeUnit.MILLISECONDS);
+        }, 0, TimeUtils.MILLIS_PER_SECOND, TimeUnit.MILLISECONDS);
     }
 
     public static class SchedulerThreadFactory implements ThreadFactory {
@@ -85,7 +84,7 @@ public abstract class SchedulerBus {
         @Override
         public Thread newThread(Runnable runnable) {
             var threadName = StringUtils.format("scheduler-p{}-t{}", poolNumber, threadNumber.getAndIncrement());
-            var thread = new FastThreadLocalThread(group, runnable, threadName, 0);
+            var thread = new FastThreadLocalThread(group, runnable, threadName);
             thread.setDaemon(false);
             thread.setPriority(Thread.NORM_PRIORITY);
             thread.setUncaughtExceptionHandler((t, e) -> logger.error(t.toString(), e));

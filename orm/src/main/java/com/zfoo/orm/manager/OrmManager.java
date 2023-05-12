@@ -16,7 +16,10 @@ package com.zfoo.orm.manager;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
-import com.mongodb.client.*;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import com.zfoo.orm.OrmContext;
@@ -47,6 +50,7 @@ import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.ClassMetadata;
 import org.springframework.core.type.classreading.CachingMetadataReaderFactory;
 import org.springframework.core.type.classreading.MetadataReader;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.lang.reflect.Modifier;
@@ -183,11 +187,8 @@ public class OrmManager implements IOrmManager {
     @Override
     public void inject() {
         var applicationContext = OrmContext.getApplicationContext();
-        var beanNames = applicationContext.getBeanDefinitionNames();
-
-        for (var beanName : beanNames) {
-            var bean = applicationContext.getBean(beanName);
-
+        var componentBeans =  applicationContext.getBeansWithAnnotation(Component.class);
+        for (var bean : componentBeans.values()) {
             ReflectionUtils.filterFieldsInClass(bean.getClass()
                     , field -> field.isAnnotationPresent(EntityCachesInjection.class)
                     , field -> {
@@ -202,7 +203,7 @@ public class OrmManager implements IOrmManager {
                         IEntityCaches<?, ?> entityCaches = entityCachesMap.get(entityClazz);
 
                         if (entityCaches == null) {
-                            throw new RuntimeException(StringUtils.format("实体缓存对象[entityCaches:{}]不存在", entityClazz));
+                            throw new RunException("实体缓存对象不存在，请检查配置[entity-package:{}]和[entityCaches:{}]的位置是否正确", ormConfig.getEntityPackage(), entityClazz);
                         }
 
                         ReflectionUtils.makeAccessible(field);
@@ -221,6 +222,11 @@ public class OrmManager implements IOrmManager {
     }
 
     @Override
+    public MongoClient mongoClient() {
+        return mongoClient;
+    }
+
+    @Override
     public <E extends IEntity<?>> IEntityCaches<?, E> getEntityCaches(Class<E> clazz) {
         var usable = allEntityCachesUsableMap.get(clazz);
         if (usable == null) {
@@ -235,11 +241,6 @@ public class OrmManager implements IOrmManager {
     @Override
     public Collection<IEntityCaches<?, ?>> getAllEntityCaches() {
         return Collections.unmodifiableCollection(entityCachesMap.values());
-    }
-
-    @Override
-    public ClientSession getClientSession() {
-        return mongoClient.startSession();
     }
 
     @Override
@@ -418,7 +419,7 @@ public class OrmManager implements IOrmManager {
 
         ReflectionUtils.makeAccessible(idField);
         ReflectionUtils.setField(idField, entityInstance, idFiledValue);
-        var idMethodOptional = Arrays.stream(ReflectionUtils.getMethodsByNameInPOJOClass(clazz, "id"))
+        var idMethodOptional = Arrays.stream(ReflectionUtils.getAllMethods(clazz)).filter(it -> it.getName().equalsIgnoreCase("id"))
                 .filter(it -> it.getParameterCount() <= 0)
                 .findFirst();
         AssertionUtils.isTrue(idMethodOptional.isPresent(), "实体类Entity[{}]必须重写id()方法", clazz.getSimpleName());
@@ -467,10 +468,7 @@ public class OrmManager implements IOrmManager {
             throw new RunException("在Orm中只能使用Orm的Index注解，不能使用Storage的Index注解，为了避免不必要的误解和增强项目的健壮性，禁止这样使用");
         }
 
-        var filedList = Arrays.stream(clazz.getDeclaredFields())
-                .filter(it -> !Modifier.isTransient(it.getModifiers()))
-                .filter(it -> !Modifier.isStatic(it.getModifiers()))
-                .collect(Collectors.toList());
+        var filedList = ReflectionUtils.notStaticAndTransientFields(clazz);
 
         for (var field : filedList) {
             // entity必须包含属性的get和set方法

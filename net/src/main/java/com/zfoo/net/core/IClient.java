@@ -13,10 +13,10 @@
 
 package com.zfoo.net.core;
 
-import com.zfoo.net.session.model.Session;
+import com.zfoo.net.session.Session;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public interface IClient {

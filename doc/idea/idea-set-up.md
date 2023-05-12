@@ -32,6 +32,16 @@ git config --global https.proxy https://127.0.0.1:10809
 git config --global core.autocrlf input
 ```
 
+- google translate设置
+```
+direct -> domain:zfoo.net
+
+新增proxy
+proxy -> 
+ranslate.googleapis.com, 
+ranslate.google.com
+```
+
 ## 3. nodejs安装
 
 - 直接默认安装
@@ -52,9 +62,15 @@ git config --global core.autocrlf input
 
 ## 4. mongodb
 
+### mongo 4.0
 1. 直接安装MongoDB，用custom自定义安装目录，一般用默认的安装目录即可，不要勾选mongoDB compass
 2. 将C:\Program Files\MongoDB\Server\4.2\bin配置到环境变量中，便于全局使用
 3. mongo -version # 查看安装的版本
+
+### mongo 6.0
+1. 直接安装MongoDB，用custom自定义安装目录，一般用默认的安装目录即可，不要勾选mongoDB compass
+2. 直接安装MongoSh，将安装目录定位到MongoDB的bin目录
+
 
 ## 5. idea，mongodb，postman
 
@@ -136,8 +152,7 @@ Line separator，Unix and MacOs （\n）
 
 ```
 /**
- * @author jaysunxiao
- * @version 3.0
+ * @author godotg
  */
 ```
 
@@ -163,6 +178,8 @@ See the License for the specific language governing permissions and limitations 
 - maven代理设置（非全局），-DproxySet=true -DproxyHost=127.0.0.1 -DproxyPort=10809
   ![Image text](../image/idea/idea-proxy-maven.jpg)
 
+- 设置自动下载源代码，将上图的sources，documentation，annotations勾上
+
 ## 6 使用Idea默认的快捷键设置
 
 - eclipse快捷键设置，个人习惯
@@ -177,11 +194,18 @@ replace，设置为alt+f
 
 ### 4.2 服务器插件安装
 
+- translate插件
+```
+快捷键设置
+Show Translation Dialog，设置为ctrl + shift + x
+Translate，设置为ctrl + x
+```
+
 - Cyan Light Theme主题插件，个人习惯
 - zoolytic，zookeeper客户端管理插件，推荐下载
-- vue.js，vue语法识别，推荐下载
-- jclasslib，字节码查看工具，推荐下载
 - Maven Helper，maven依赖查看工具，推荐下载
+- jclasslib，字节码查看工具，推荐下载
+- vue，vue语法识别，推荐下载
 
 - Alibaba Java Coding Guidelines
 - Alibaba Cloud tool

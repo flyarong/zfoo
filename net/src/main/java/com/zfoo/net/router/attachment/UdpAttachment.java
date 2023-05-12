@@ -15,12 +15,12 @@ package com.zfoo.net.router.attachment;
 import com.zfoo.util.math.RandomUtils;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class UdpAttachment implements IAttachment {
 
-    public static final transient short PROTOCOL_ID = 2;
+    public static final short PROTOCOL_ID = 3;
 
     private String host;
     private int port;
@@ -35,11 +35,6 @@ public class UdpAttachment implements IAttachment {
     @Override
     public AttachmentType packetType() {
         return AttachmentType.UDP_PACKET;
-    }
-
-    @Override
-    public int executorConsistentHash() {
-        return RandomUtils.randomInt();
     }
 
     @Override

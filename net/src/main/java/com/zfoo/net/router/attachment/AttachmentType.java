@@ -16,36 +16,38 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public enum AttachmentType {
 
     /**
-     * 带有同步或者异步信息的附加包
+     * synchronous or asynchronous attachment
      */
     SIGNAL_PACKET((byte) 0, SignalAttachment.class),
 
-    /**
-     * 带有网关信息的附加包
-     */
-    GATEWAY_PACKET((byte) 1, GatewayAttachment.class),
+    SIGNAL_ONLY_PACKET((byte) 1, SignalOnlyAttachment.class),
 
     /**
-     * udp消息的附加包
+     * gateway attachment
      */
-    UDP_PACKET((byte) 2, UdpAttachment.class),
+    GATEWAY_PACKET((byte) 2, GatewayAttachment.class),
+
+    /**
+     * udp attachment
+     */
+    UDP_PACKET((byte) 3, UdpAttachment.class),
 
 
     /**
-     * http消息的附加包
+     * http attachment
      */
-    HTTP_PACKET((byte) 3, HttpAttachment.class),
+    HTTP_PACKET((byte) 4, HttpAttachment.class),
 
     /**
-     * 无返回消息的附加包
+     * not used attachment
      */
-    NO_ANSWER_PACKET((byte) 4, NoAnswerAttachment.class),
+    NO_ANSWER_PACKET((byte) 5, NoAnswerAttachment.class),
 
 
     ;

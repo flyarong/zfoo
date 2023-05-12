@@ -18,7 +18,6 @@ import com.zfoo.net.handler.codec.udp.UdpCodecHandler;
 import com.zfoo.util.net.HostAndPort;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollDatagramChannel;
@@ -30,11 +29,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
-public class UdpServer extends AbstractServer {
-
+public class UdpServer extends AbstractServer<Channel> {
     private static final Logger logger = LoggerFactory.getLogger(UdpServer.class);
 
     public UdpServer(HostAndPort host) {
@@ -54,12 +52,11 @@ public class UdpServer extends AbstractServer {
         bootstrap.group(workerGroup)
                 .channel(Epoll.isAvailable() ? EpollDatagramChannel.class : NioDatagramChannel.class)
                 .option(ChannelOption.SO_BROADCAST, true)
-                .handler(channelChannelInitializer());
+                .handler(this);
 
         // 异步
         channelFuture = bootstrap.bind(hostAddress, port);
         channelFuture.syncUninterruptibly();
-        channel = channelFuture.channel();
 
         allServers.add(this);
 
@@ -67,16 +64,8 @@ public class UdpServer extends AbstractServer {
     }
 
     @Override
-    public ChannelInitializer<Channel> channelChannelInitializer() {
-        return new ChannelHandlerInitializer();
-    }
-
-
-    private static class ChannelHandlerInitializer extends ChannelInitializer<Channel> {
-        @Override
-        protected void initChannel(Channel channel) {
-            channel.pipeline().addLast(new UdpCodecHandler());
-            channel.pipeline().addLast(new ServerRouteHandler());
-        }
+    protected void initChannel(Channel channel) {
+        channel.pipeline().addLast(new UdpCodecHandler());
+        channel.pipeline().addLast(new ServerRouteHandler());
     }
 }

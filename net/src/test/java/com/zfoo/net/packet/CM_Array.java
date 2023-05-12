@@ -18,12 +18,12 @@ import com.zfoo.protocol.IPacket;
 import java.util.Arrays;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class CM_Array implements IPacket {
 
-    public static final transient short PROTOCOL_ID = 1119;
+    public static final short PROTOCOL_ID = 1119;
 
     private int[] a;
 

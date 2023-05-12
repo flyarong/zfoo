@@ -12,23 +12,22 @@
 
 package com.zfoo.net.router.attachment;
 
-import com.zfoo.util.math.HashUtils;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class HttpAttachment implements IAttachment {
 
-    public static final transient short PROTOCOL_ID = 3;
+    public static final short PROTOCOL_ID = 4;
 
     private long uid;
 
-    private boolean useExecutorConsistentHash;
+    private boolean useTaskExecutorHashParam;
 
-    private int executorConsistentHash;
+    private int taskExecutorHashParam;
 
     private transient FullHttpRequest fullHttpRequest;
 
@@ -46,13 +45,12 @@ public class HttpAttachment implements IAttachment {
         return AttachmentType.HTTP_PACKET;
     }
 
-    @Override
-    public int executorConsistentHash() {
-        if (useExecutorConsistentHash) {
-            return executorConsistentHash;
-        } else {
-            return HashUtils.fnvHash(uid);
-        }
+    /**
+     * EN:Used to determine which thread the message is processed on
+     * CN:用来确定这条消息在哪一个线程处理
+     */
+    public int taskExecutorHash() {
+        return useTaskExecutorHashParam ? taskExecutorHashParam : (int) uid;
     }
 
     @Override
@@ -60,9 +58,9 @@ public class HttpAttachment implements IAttachment {
         return PROTOCOL_ID;
     }
 
-    public void useExecutorConsistentHash(Object argument) {
-        this.useExecutorConsistentHash = true;
-        this.executorConsistentHash = HashUtils.fnvHash(argument);
+    public void wrapTaskExecutorHash(Object argument) {
+        this.useTaskExecutorHashParam = true;
+        this.taskExecutorHashParam = argument.hashCode();
     }
 
     public long getUid() {
@@ -73,20 +71,20 @@ public class HttpAttachment implements IAttachment {
         this.uid = uid;
     }
 
-    public boolean isUseExecutorConsistentHash() {
-        return useExecutorConsistentHash;
+    public boolean isUseTaskExecutorHashParam() {
+        return useTaskExecutorHashParam;
     }
 
-    public void setUseExecutorConsistentHash(boolean useExecutorConsistentHash) {
-        this.useExecutorConsistentHash = useExecutorConsistentHash;
+    public void setUseTaskExecutorHashParam(boolean useTaskExecutorHashParam) {
+        this.useTaskExecutorHashParam = useTaskExecutorHashParam;
     }
 
-    public int getExecutorConsistentHash() {
-        return executorConsistentHash;
+    public int getTaskExecutorHashParam() {
+        return taskExecutorHashParam;
     }
 
-    public void setExecutorConsistentHash(int executorConsistentHash) {
-        this.executorConsistentHash = executorConsistentHash;
+    public void setTaskExecutorHashParam(int taskExecutorHashParam) {
+        this.taskExecutorHashParam = taskExecutorHashParam;
     }
 
     public FullHttpRequest getFullHttpRequest() {

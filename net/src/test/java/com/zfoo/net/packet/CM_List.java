@@ -20,12 +20,12 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class CM_List implements IPacket {
 
-    public static final transient short PROTOCOL_ID = 1118;
+    public static final short PROTOCOL_ID = 1118;
 
     private List<Integer> list;
 

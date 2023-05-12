@@ -15,7 +15,7 @@ package com.zfoo.storage.model.config;
 
 /**
  * @author godotg
- * @version 4.0
+ * @version 3.0
  */
 public class StorageConfig {
 
@@ -24,6 +24,12 @@ public class StorageConfig {
     private String scanPackage;
 
     private String resourceLocation;
+
+    // 类的属性是否可写，如果为false则类的属性必须为private并且不能有set方法
+    private boolean writeable;
+
+    // 未被使用的Storage是否回收，默认开启节省资源
+    private boolean recycle;
 
     public String getId() {
         return id;
@@ -47,5 +53,21 @@ public class StorageConfig {
 
     public void setResourceLocation(String resourceLocation) {
         this.resourceLocation = resourceLocation;
+    }
+
+    public boolean isWriteable() {
+        return writeable;
+    }
+
+    public void setWriteable(boolean writeable) {
+        this.writeable = writeable;
+    }
+
+    public boolean isRecycle() {
+        return recycle;
+    }
+
+    public void setRecycle(boolean recycle) {
+        this.recycle = recycle;
     }
 }

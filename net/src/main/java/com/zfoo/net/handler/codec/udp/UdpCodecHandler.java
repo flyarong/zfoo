@@ -13,11 +13,11 @@
 package com.zfoo.net.handler.codec.udp;
 
 import com.zfoo.net.NetContext;
-import com.zfoo.net.packet.model.DecodedPacketInfo;
-import com.zfoo.net.packet.model.EncodedPacketInfo;
-import com.zfoo.net.packet.service.PacketService;
+import com.zfoo.net.packet.DecodedPacketInfo;
+import com.zfoo.net.packet.EncodedPacketInfo;
+import com.zfoo.net.packet.PacketService;
 import com.zfoo.net.router.attachment.UdpAttachment;
-import com.zfoo.net.util.SessionUtils;
+import com.zfoo.protocol.util.IOUtils;
 import com.zfoo.protocol.util.JsonUtils;
 import com.zfoo.protocol.util.StringUtils;
 import io.netty.buffer.ByteBuf;
@@ -32,12 +32,10 @@ import java.net.InetSocketAddress;
 import java.util.List;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class UdpCodecHandler extends MessageToMessageCodec<DatagramPacket, EncodedPacketInfo> {
-
-    private static final Logger logger = LoggerFactory.getLogger(UdpCodecHandler.class);
 
     @Override
     protected void decode(ChannelHandlerContext channelHandlerContext, DatagramPacket datagramPacket, List<Object> list) {
@@ -51,10 +49,9 @@ public class UdpCodecHandler extends MessageToMessageCodec<DatagramPacket, Encod
         in.markReaderIndex();
         var length = in.readInt();
 
-        // 如果长度非法，则抛出异常断开连接
-        if (length < 0) {
-            throw new IllegalArgumentException(StringUtils.format("[session:{}]的包头长度[length:{}]非法"
-                    , SessionUtils.sessionInfo(channelHandlerContext), length));
+        // 如果长度非法，则抛出异常断开连接，按照自己的使用场景指定合适的长度，防止客户端发送超大包占用带宽
+        if (length < 0 || length > IOUtils.BYTES_PER_MB) {
+            throw new IllegalArgumentException(StringUtils.format("illegal packet [length:{}]", length));
         }
 
         // ByteBuf里的数据太小
@@ -63,38 +60,19 @@ public class UdpCodecHandler extends MessageToMessageCodec<DatagramPacket, Encod
             return;
         }
 
-        ByteBuf tmpByteBuf = null;
-        try {
-            tmpByteBuf = in.readRetainedSlice(length);
-            DecodedPacketInfo packetInfo = NetContext.getPacketService().read(tmpByteBuf);
-            var sender = datagramPacket.sender();
-            packetInfo.setAttachment(UdpAttachment.valueOf(sender.getHostString(), sender.getPort()));
-            list.add(packetInfo);
-        } catch (Exception e) {
-            logger.error("exception异常", e);
-            throw e;
-        } catch (Throwable t) {
-            logger.error("throwable错误", t);
-            throw t;
-        } finally {
-            ReferenceCountUtil.release(tmpByteBuf);
-        }
+        var sliceByteBuf = in.readSlice(length);
+        var packetInfo = NetContext.getPacketService().read(sliceByteBuf);
+        var sender = datagramPacket.sender();
+        packetInfo.setAttachment(UdpAttachment.valueOf(sender.getHostString(), sender.getPort()));
+        list.add(packetInfo);
     }
 
     @Override
     protected void encode(ChannelHandlerContext channelHandlerContext, EncodedPacketInfo out, List<Object> list) {
-        try {
-            var byteBuf = channelHandlerContext.alloc().ioBuffer();
-            var udpAttachment = (UdpAttachment) out.getAttachment();
+        var byteBuf = channelHandlerContext.alloc().ioBuffer();
+        var udpAttachment = (UdpAttachment) out.getAttachment();
 
-            NetContext.getPacketService().write(byteBuf, out.getPacket(), out.getAttachment());
-            list.add(new DatagramPacket(byteBuf, new InetSocketAddress(udpAttachment.getHost(), udpAttachment.getPort())));
-        } catch (Exception e) {
-            logger.error("[{}]编码exception异常", JsonUtils.object2String(out), e);
-            throw e;
-        } catch (Throwable t) {
-            logger.error("[{}]编码throwable错误", JsonUtils.object2String(out), t);
-            throw t;
-        }
+        NetContext.getPacketService().write(byteBuf, out.getPacket(), out.getAttachment());
+        list.add(new DatagramPacket(byteBuf, new InetSocketAddress(udpAttachment.getHost(), udpAttachment.getPort())));
     }
 }

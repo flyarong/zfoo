@@ -13,13 +13,16 @@
 
 package com.zfoo.storage.resource;
 
+import com.zfoo.storage.model.anno.ExcelFieldName;
 import com.zfoo.storage.model.anno.Id;
 import com.zfoo.storage.model.anno.Index;
 import com.zfoo.storage.model.anno.Resource;
 
+import java.util.List;
+
 /**
  * @author godotg
- * @version 4.0
+ * @version 3.0
  */
 @Resource
 public class StudentResource {
@@ -33,12 +36,13 @@ public class StudentResource {
     @Index
     private String name;
 
+    @ExcelFieldName("年龄")
     private int age;
     private float score;
     private String[] courses;
     private User[] users;
+    private List<User> userList;
     private User user;
-
     /**
      * 不想映射的字段必须加上transient关键字，这样就不会从Excel中去找对应的列
      */
@@ -66,6 +70,10 @@ public class StudentResource {
 
     public User[] getUsers() {
         return users;
+    }
+
+    public List<User> getUserList() {
+        return userList;
     }
 
     public User getUser() {

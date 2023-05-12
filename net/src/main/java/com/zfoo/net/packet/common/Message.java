@@ -13,21 +13,21 @@
 
 package com.zfoo.net.packet.common;
 
+import com.baidu.bjf.remoting.protobuf.annotation.Ignore;
+import com.baidu.bjf.remoting.protobuf.annotation.ProtobufClass;
 import com.zfoo.protocol.IPacket;
 import com.zfoo.protocol.ProtocolManager;
 
 /**
  * 通用的返回，既可以用在远程调用，又可以嵌套在其它协议里
  *
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
+@ProtobufClass
 public class Message implements IPacket {
-
-    public static final transient short PROTOCOL_ID = 100;
-
-    public static final Message SUCCESS = valueSuccess(null);
-    public static final Message FAIL = valueFail(null);
+    @Ignore
+    public static final short PROTOCOL_ID = 100;
 
     private byte module;
 
@@ -58,7 +58,7 @@ public class Message implements IPacket {
         return Message.valueOf(packet, code, null);
     }
 
-    public static Message valueFail(String message) {
+    public static Message valueError(String message) {
         var mess = new Message();
         mess.code = 0;
         mess.message = message;
@@ -68,6 +68,20 @@ public class Message implements IPacket {
     public static Message valueSuccess(String message) {
         var mess = new Message();
         mess.code = 1;
+        mess.message = message;
+        return mess;
+    }
+
+    public static Message valueInfo(String message) {
+        var mess = new Message();
+        mess.code = 2;
+        mess.message = message;
+        return mess;
+    }
+
+    public static Message valueWarning(String message) {
+        var mess = new Message();
+        mess.code = 3;
         mess.message = message;
         return mess;
     }

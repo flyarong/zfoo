@@ -20,12 +20,12 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class WebSocketPacketRequest implements IPacket {
 
-    public static final transient short PROTOCOL_ID = 2070;
+    public static final short PROTOCOL_ID = 2070;
 
     private byte a;
     private Byte aa;

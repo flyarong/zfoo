@@ -10,20 +10,19 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations under the License.
  */
-
 package com.zfoo.event.model.anno;
 
 import java.lang.annotation.*;
 
 /**
- * 接收事件的注解
+ * Receive annotations for events (observers).
  *
  * @author godotg
  * @version 3.0
  */
-
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})
 public @interface EventReceiver {
+    Bus value() default Bus.CurrentThread;
 }

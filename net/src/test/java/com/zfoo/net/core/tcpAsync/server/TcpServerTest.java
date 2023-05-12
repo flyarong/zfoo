@@ -21,7 +21,7 @@ import org.junit.Test;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 @Ignore
@@ -73,9 +73,9 @@ org.springframework.context.event.internalEventListenerProcessor
 org.springframework.context.event.internalEventListenerFactory
 com.zfoo.net.config.model.NetConfig
 com.zfoo.net.NetContext
-com.zfoo.net.config.manager.ConfigManager
-com.zfoo.net.packet.service.PacketService
+com.zfoo.net.config.ConfigManager
+com.zfoo.net.packet.PacketService
 com.zfoo.net.router.Router
 com.zfoo.net.consumer.Consumer
-com.zfoo.net.session.manager.SessionManager
+com.zfoo.net.session.SessionManager
  */

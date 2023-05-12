@@ -16,12 +16,12 @@ import com.baidu.bjf.remoting.protobuf.annotation.Protobuf;
 import com.zfoo.protocol.IPacket;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class JProtobufHelloResponse implements IPacket {
 
-    public static final transient short PROTOCOL_ID = 1501;
+    public static final short PROTOCOL_ID = 1501;
 
     @Protobuf(order = 1)
     private String message;

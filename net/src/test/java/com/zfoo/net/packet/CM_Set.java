@@ -21,12 +21,12 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class CM_Set implements IPacket {
 
-    public static final transient short PROTOCOL_ID = 1121;
+    public static final short PROTOCOL_ID = 1121;
 
     private Set<Integer> a;
     private Set<ObjectA> b;

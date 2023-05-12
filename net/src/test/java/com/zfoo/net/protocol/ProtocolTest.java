@@ -15,9 +15,6 @@ package com.zfoo.net.protocol;
 
 import com.zfoo.net.NetContext;
 import com.zfoo.net.packet.*;
-import com.zfoo.net.packet.model.DecodedPacketInfo;
-import com.zfoo.net.packet.service.IPacketService;
-import com.zfoo.net.packet.service.PacketService;
 import com.zfoo.net.router.attachment.SignalAttachment;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -31,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class ProtocolTest {

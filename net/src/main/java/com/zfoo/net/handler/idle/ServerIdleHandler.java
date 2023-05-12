@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 @ChannelHandler.Sharable
@@ -36,7 +36,7 @@ public class ServerIdleHandler extends ChannelDuplexHandler {
         if (evt instanceof IdleStateEvent) {
             IdleStateEvent event = (IdleStateEvent) evt;
             if (event.state() == IdleState.ALL_IDLE) {
-                logger.warn("[channel:{}] is time out for close", SessionUtils.sessionInfo(ctx));
+                logger.warn("channel is time out for close {}", SessionUtils.sessionSimpleInfo(ctx));
             }
             ctx.close();
         }

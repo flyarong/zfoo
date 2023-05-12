@@ -18,15 +18,14 @@ import com.zfoo.net.NetContext;
 import com.zfoo.net.consumer.balancer.ConsistentHashConsumerLoadBalancer;
 import com.zfoo.net.core.gateway.IGatewayLoadBalancer;
 import com.zfoo.net.core.gateway.model.GatewaySessionInactiveEvent;
+import com.zfoo.net.packet.DecodedPacketInfo;
 import com.zfoo.net.packet.common.Heartbeat;
 import com.zfoo.net.packet.common.Ping;
 import com.zfoo.net.packet.common.Pong;
-import com.zfoo.net.packet.model.DecodedPacketInfo;
 import com.zfoo.net.router.attachment.GatewayAttachment;
 import com.zfoo.net.router.attachment.IAttachment;
 import com.zfoo.net.router.attachment.SignalAttachment;
-import com.zfoo.net.session.model.AttributeType;
-import com.zfoo.net.session.model.Session;
+import com.zfoo.net.session.Session;
 import com.zfoo.net.util.SessionUtils;
 import com.zfoo.protocol.IPacket;
 import com.zfoo.protocol.util.JsonUtils;
@@ -36,11 +35,13 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.lang.Nullable;
 
+import java.util.Objects;
 import java.util.function.BiFunction;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 @ChannelHandler.Sharable
@@ -48,11 +49,14 @@ public class GatewayRouteHandler extends ServerRouteHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GatewayRouteHandler.class);
 
+    public static final BiFunction<Session, IPacket, Boolean> DEFAULT_PACKER_FILTER = (session, packet) -> Boolean.FALSE;
+
     private final BiFunction<Session, IPacket, Boolean> packetFilter;
 
-    public GatewayRouteHandler(BiFunction<Session, IPacket, Boolean> packetFilter) {
-        this.packetFilter = packetFilter;
+    public GatewayRouteHandler(@Nullable BiFunction<Session, IPacket, Boolean> packetFilter) {
+        this.packetFilter = Objects.requireNonNullElse(packetFilter, DEFAULT_PACKER_FILTER);
     }
+
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
@@ -73,27 +77,26 @@ public class GatewayRouteHandler extends ServerRouteHandler {
         }
 
         // 过滤非法包
-        if (packetFilter != null && packetFilter.apply(session, packet)) {
-            throw new IllegalArgumentException(StringUtils.format("[session:{}]发送了一个非法包[{}]"
-                    , SessionUtils.sessionInfo(ctx), JsonUtils.object2String(packet)));
+        if (packetFilter.apply(session, packet)) {
+            throw new IllegalArgumentException(StringUtils.format(" session:{}发送了一个非法包[{}]", SessionUtils.sessionSimpleInfo(ctx), JsonUtils.object2String(packet)));
         }
 
-        var signalAttachment = (SignalAttachment) decodedPacketInfo.getAttachment();
 
         // 把客户端信息包装为一个GatewayAttachment,因此通过这个网关附加包可以得到玩家的uid、sid之类的信息
-        var gatewayAttachment = new GatewayAttachment(session, signalAttachment);
+        var gatewayAttachment = new GatewayAttachment(session);
+        gatewayAttachment.wrapAttachment(decodedPacketInfo.getAttachment());
 
         // 网关优先使用IGatewayLoadBalancer作为一致性hash的计算参数，然后才会使用客户端的session做参数
         // 例子：以聊天服务来说，玩家知道自己在哪个群组groupId中，那往这个群发送消息时，会在Packet中带上这个groupId做为一致性hash就可以了。
         if (packet instanceof IGatewayLoadBalancer) {
             var loadBalancerConsistentHashObject = ((IGatewayLoadBalancer) packet).loadBalancerConsistentHashObject();
-            gatewayAttachment.useExecutorConsistentHash(loadBalancerConsistentHashObject);
+            gatewayAttachment.wrapTaskExecutorHash(loadBalancerConsistentHashObject);
             forwardingPacket(packet, gatewayAttachment, loadBalancerConsistentHashObject);
             return;
         } else {
             // 使用用户的uid做一致性hash
-            var uid = (Long) session.getAttribute(AttributeType.UID);
-            if (uid != null) {
+            var uid = session.getUid();
+            if (uid > 0) {
                 forwardingPacket(packet, gatewayAttachment, uid);
                 return;
             }
@@ -113,9 +116,9 @@ public class GatewayRouteHandler extends ServerRouteHandler {
             var consumerSession = ConsistentHashConsumerLoadBalancer.getInstance().loadBalancer(packet, argument);
             NetContext.getRouter().send(consumerSession, packet, attachment);
         } catch (Exception e) {
-            logger.error("网关发生异常", e);
+            logger.error("An exception occurred at the gateway", e);
         } catch (Throwable t) {
-            logger.error("网关发生错误", t);
+            logger.error("An error occurred at the gateway", t);
         }
     }
 
@@ -127,10 +130,10 @@ public class GatewayRouteHandler extends ServerRouteHandler {
         }
 
         var sid = session.getSid();
-        var uid = (Long) session.getAttribute(AttributeType.UID);
+        var uid = session.getUid();
 
         // 连接到网关的客户端断开了连接
-        EventBus.asyncSubmit(GatewaySessionInactiveEvent.valueOf(sid, uid == null ? 0 : uid.longValue()));
+        EventBus.post(GatewaySessionInactiveEvent.valueOf(sid, uid));
 
         super.channelInactive(ctx);
     }

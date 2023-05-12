@@ -12,61 +12,53 @@
 
 package com.zfoo.net.router.attachment;
 
-import com.zfoo.net.session.model.AttributeType;
-import com.zfoo.net.session.model.Session;
-import com.zfoo.util.math.HashUtils;
-import org.springframework.lang.Nullable;
+import com.zfoo.net.session.Session;
 
 /**
- * 附加包对业务层透明，禁止在业务层使用
- *
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class GatewayAttachment implements IAttachment {
 
-    public static final transient short PROTOCOL_ID = 1;
+    public static final short PROTOCOL_ID = 2;
 
     /**
-     * session的id，一般是客户端连接网关的那个sid
+     * session id
      */
     private long sid;
 
     /**
-     * 用戶Id，从网关转发到后面的消息必须要附带用户的Id信息，要不然无法知道是哪个用户发过来的，0代表没有用户id
+     * EN:User ID, the message forwarded from the gateway to the back must be accompanied by the user's ID information,
+     * otherwise it is impossible to know which user sent it, 0 means no user ID
+     * <p>
+     * CN:用戶Id，从网关转发到后面的消息必须要附带用户的Id信息，要不然无法知道是哪个用户发过来的，0代表没有用户id
      */
     private long uid;
 
-    /**
-     * 是否使用consistentHashId作为一致性hashId
-     */
-    private boolean useExecutorConsistentHash;
-    /**
-     * 用来在TaskBus中计算一致性hash的参数
-     */
-    private int executorConsistentHash;
+    private boolean useTaskExecutorHashParam;
+    private int taskExecutorHashParam;
 
     /**
-     * true为客户端，false为服务端
+     * true for the client, false for the server
      */
     private boolean client;
 
 
     /**
-     * 客户端发到网关的可能是一个带有同步或者异步的附加包，网关转发的时候需要把这个附加包给带上
+     * EN:The client may send an packet with synchronous or asynchronous to the gateway, and the gateway needs to bring this attachment when forwarding
+     * CN:客户端发到网关的可能是一个带有同步或者异步的附加包，网关转发的时候需要把这个附加包给带上
      */
     private SignalAttachment signalAttachment;
+    private SignalOnlyAttachment signalOnlyAttachment;
 
 
     public GatewayAttachment() {
     }
 
-    public GatewayAttachment(Session session, @Nullable SignalAttachment signalAttachment) {
+    public GatewayAttachment(Session session) {
         this.client = true;
         this.sid = session.getSid();
-        var uid = session.getAttribute(AttributeType.UID);
-        this.uid = uid == null ? 0 : (long) uid;
-        this.signalAttachment = signalAttachment;
+        this.uid = session.getUid();
     }
 
     public GatewayAttachment(long sid, long uid) {
@@ -80,13 +72,12 @@ public class GatewayAttachment implements IAttachment {
         return AttachmentType.GATEWAY_PACKET;
     }
 
-    @Override
-    public int executorConsistentHash() {
-        if (useExecutorConsistentHash) {
-            return executorConsistentHash;
-        } else {
-            return HashUtils.fnvHash(uid);
-        }
+    /**
+     * EN:Used to determine which thread the message is processed on
+     * CN:用来确定这条消息在哪一个线程处理
+     */
+    public int taskExecutorHash() {
+        return useTaskExecutorHashParam ? taskExecutorHashParam : (int) uid;
     }
 
     @Override
@@ -94,9 +85,34 @@ public class GatewayAttachment implements IAttachment {
         return PROTOCOL_ID;
     }
 
-    public void useExecutorConsistentHash(Object argument) {
-        this.useExecutorConsistentHash = true;
-        this.executorConsistentHash = HashUtils.fnvHash(argument);
+    public void wrapTaskExecutorHash(Object argument) {
+        this.useTaskExecutorHashParam = true;
+        this.taskExecutorHashParam = argument.hashCode();
+    }
+
+    public void wrapAttachment(IAttachment attachment) {
+        if (attachment == null) {
+            return;
+        }
+        switch (attachment.packetType()) {
+            case SIGNAL_ONLY_PACKET:
+                signalOnlyAttachment = (SignalOnlyAttachment) attachment;
+                break;
+            case SIGNAL_PACKET:
+                signalAttachment = (SignalAttachment) attachment;
+                break;
+            default:
+        }
+    }
+
+    public IAttachment attachment() {
+        if (signalAttachment != null) {
+            return signalAttachment;
+        }
+        if (signalOnlyAttachment != null) {
+            return signalOnlyAttachment;
+        }
+        return null;
     }
 
     public long getSid() {
@@ -115,20 +131,20 @@ public class GatewayAttachment implements IAttachment {
         this.uid = uid;
     }
 
-    public boolean isUseExecutorConsistentHash() {
-        return useExecutorConsistentHash;
+    public boolean isUseTaskExecutorHashParam() {
+        return useTaskExecutorHashParam;
     }
 
-    public void setUseExecutorConsistentHash(boolean useExecutorConsistentHash) {
-        this.useExecutorConsistentHash = useExecutorConsistentHash;
+    public void setUseTaskExecutorHashParam(boolean useTaskExecutorHashParam) {
+        this.useTaskExecutorHashParam = useTaskExecutorHashParam;
     }
 
-    public int getExecutorConsistentHash() {
-        return executorConsistentHash;
+    public int getTaskExecutorHashParam() {
+        return taskExecutorHashParam;
     }
 
-    public void setExecutorConsistentHash(int executorConsistentHash) {
-        this.executorConsistentHash = executorConsistentHash;
+    public void setTaskExecutorHashParam(int taskExecutorHashParam) {
+        this.taskExecutorHashParam = taskExecutorHashParam;
     }
 
     public boolean isClient() {
@@ -146,5 +162,13 @@ public class GatewayAttachment implements IAttachment {
 
     public void setSignalAttachment(SignalAttachment signalAttachment) {
         this.signalAttachment = signalAttachment;
+    }
+
+    public SignalOnlyAttachment getSignalOnlyAttachment() {
+        return signalOnlyAttachment;
+    }
+
+    public void setSignalOnlyAttachment(SignalOnlyAttachment signalOnlyAttachment) {
+        this.signalOnlyAttachment = signalOnlyAttachment;
     }
 }

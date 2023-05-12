@@ -13,23 +13,20 @@
 package com.zfoo.net.router.attachment;
 
 /**
- * 附加包对业务层透明，禁止在业务层使用
+ * not used attachment
  *
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 public class NoAnswerAttachment implements IAttachment {
 
-    public static final transient short PROTOCOL_ID = 4;
+    public static final short PROTOCOL_ID = 5;
 
-    /**
-     * 用来在TaskBus中计算一致性hash的参数
-     */
-    private int executorConsistentHash;
+    private int taskExecutorHash;
 
-    public static NoAnswerAttachment valueOf(int executorConsistentHash) {
+    public static NoAnswerAttachment valueOf(int taskExecutorHash) {
         var attachment = new NoAnswerAttachment();
-        attachment.executorConsistentHash = executorConsistentHash;
+        attachment.taskExecutorHash = taskExecutorHash;
         return attachment;
     }
 
@@ -39,21 +36,15 @@ public class NoAnswerAttachment implements IAttachment {
     }
 
     @Override
-    public int executorConsistentHash() {
-        return executorConsistentHash;
-    }
-
-    @Override
     public short protocolId() {
         return PROTOCOL_ID;
     }
 
-
-    public int getExecutorConsistentHash() {
-        return executorConsistentHash;
+    public int getTaskExecutorHash() {
+        return taskExecutorHash;
     }
 
-    public void setExecutorConsistentHash(int executorConsistentHash) {
-        this.executorConsistentHash = executorConsistentHash;
+    public void setTaskExecutorHash(int taskExecutorHash) {
+        this.taskExecutorHash = taskExecutorHash;
     }
 }

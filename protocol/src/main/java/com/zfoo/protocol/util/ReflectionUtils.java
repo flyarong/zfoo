@@ -16,15 +16,19 @@ import com.zfoo.protocol.collection.ArrayUtils;
 import com.zfoo.protocol.exception.RunException;
 import com.zfoo.protocol.exception.UnknownException;
 
+import java.beans.Transient;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 
 /**
@@ -171,16 +175,6 @@ public abstract class ReflectionUtils {
         return ArrayUtils.listToArray(list, Method.class);
     }
 
-    public static Method[] getMethodsByNameInPOJOClass(Class<?> clazz, String methodName) {
-        var list = new ArrayList<Method>();
-        var methods = clazz.getDeclaredMethods();
-        for (var method : methods) {
-            if (method.getName().equalsIgnoreCase(methodName)) {
-                list.add(method);
-            }
-        }
-        return ArrayUtils.listToArray(list, Method.class);
-    }
 
     /**
      * Attempt to get all Methods on the supplied class.
@@ -319,6 +313,14 @@ public abstract class ReflectionUtils {
         }
     }
 
+    // 获取class中的普通field属性字段
+    public static List<Field> notStaticAndTransientFields(Class<?> clazz) {
+        return Arrays.stream(clazz.getDeclaredFields())
+                .filter(it -> !Modifier.isStatic(it.getModifiers()))
+                .filter(it -> !Modifier.isTransient(it.getModifiers()))
+                .filter(it -> !it.isAnnotationPresent(Transient.class))
+                .collect(Collectors.toList());
+    }
 
     public static String fieldToGetMethod(Class<?> clazz, Field field) {
         var fieldName = field.getName();
@@ -328,7 +330,7 @@ public abstract class ReflectionUtils {
         var methodName = "get" + StringUtils.capitalize(fieldName);
 
         try {
-            clazz.getDeclaredMethod(methodName, null);
+            clazz.getDeclaredMethod(methodName);
             return methodName;
         } catch (NoSuchMethodException e) {
             // java的get方法对boolean值有可能对应get或者is，所以尝试获取两种不同的get方法，当两种都获取不到才抛异常
@@ -338,14 +340,14 @@ public abstract class ReflectionUtils {
         // 如果属性名以大写字母开头，属性名直接用作 getter/setter 方法中 get/set 的后部分。例如属性名为Name，对应的方法是getName/setName。
         methodName = "get" + fieldName;
         try {
-            clazz.getDeclaredMethod(methodName, null);
+            clazz.getDeclaredMethod(methodName);
             return methodName;
         } catch (NoSuchMethodException e) {
         }
 
         methodName = "is" + StringUtils.capitalize(fieldName);
         try {
-            clazz.getDeclaredMethod(methodName, null);
+            clazz.getDeclaredMethod(methodName);
             return methodName;
         } catch (NoSuchMethodException e) {
             throw new RunException("field:[{}] has no getMethod or isMethod in class:[{}]", field.getName(), clazz.getCanonicalName());

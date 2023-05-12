@@ -15,7 +15,8 @@ package com.zfoo.net.handler;
 
 import com.zfoo.event.manager.EventBus;
 import com.zfoo.net.NetContext;
-import com.zfoo.net.core.tcp.model.ServerSessionInactiveEvent;
+import com.zfoo.net.core.event.ServerSessionActiveEvent;
+import com.zfoo.net.core.event.ServerSessionInactiveEvent;
 import com.zfoo.net.util.SessionUtils;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -23,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @author jaysunxiao
+ * @author godotg
  * @version 3.0
  */
 @ChannelHandler.Sharable
@@ -36,7 +37,8 @@ public class ServerRouteHandler extends BaseRouteHandler {
         super.channelActive(ctx);
         var session = initChannel(ctx.channel());
         NetContext.getSessionManager().addServerSession(session);
-        logger.info("server channel [{}] is active", SessionUtils.sessionInfo(ctx));
+        logger.info("server channel is active {}", SessionUtils.sessionInfo(ctx));
+        EventBus.post(ServerSessionActiveEvent.valueOf(session));
     }
 
     @Override
@@ -48,7 +50,7 @@ public class ServerRouteHandler extends BaseRouteHandler {
             return;
         }
         NetContext.getSessionManager().removeServerSession(session);
-        EventBus.asyncSubmit(ServerSessionInactiveEvent.valueOf(session));
-        logger.warn("[channel:{}] is inactive", SessionUtils.sessionInfo(ctx));
+        logger.warn("server channel is inactive {}", SessionUtils.sessionSimpleInfo(ctx));
+        EventBus.post(ServerSessionInactiveEvent.valueOf(session));
     }
 }

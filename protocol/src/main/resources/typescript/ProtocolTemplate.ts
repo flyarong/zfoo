@@ -4,18 +4,16 @@ class {} {
 
     {}
 
+    static PROTOCOL_ID: number = {};
+
     protocolId(): number {
-        return {};
+        return {}.PROTOCOL_ID;
     }
 
     static write(buffer: any, packet: {} | null) {
-        if (buffer.writePacketFlag(packet)) {
+        if (buffer.writePacketFlag(packet) || packet == null) {
             return;
         }
-        if (packet === null) {
-            return;
-        }
-
         {}
     }
 
